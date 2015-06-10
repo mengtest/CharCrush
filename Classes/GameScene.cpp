@@ -1,4 +1,5 @@
-#include "GameScene.h"
+﻿#include "GameScene.h"
+#include "ChrsGrid.h"
 
 Scene* GameScene::createScene()
 {
@@ -15,9 +16,13 @@ bool GameScene::init()
 
 	auto winSize = Director::getInstance()->getWinSize();
 
-	auto sp = Sprite::create("HelloWorld.png");
-	sp->setPosition(winSize.width / 2, winSize.height / 2);
-	addChild(sp);
+	//加载texture
+	TextureCache::getInstance()->addImage("char_bg_selected.png");
 
+	//根据行列以及单词列表文件，创建一个汉字阵列
+	auto chrsgrid = ChrsGrid::create("letters_1.plist", 5, 5);
+	addChild(chrsgrid);
+	chrsgrid->setPositionY(100);
+	
 	return true;
 }
