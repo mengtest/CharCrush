@@ -16,6 +16,8 @@ public:
 public:
 	String getString() { return m_chr; }
 	Sprite* getBg() { return m_bg; }
+	int getX() { return m_x; }
+	int getY() { return m_y; }
 
 private:
 	//x,y´ú±í×ø±ê

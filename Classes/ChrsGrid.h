@@ -9,7 +9,6 @@ using namespace std;
 
 #define GRID_WIDTH 40
 
-
 class Chr;
 
 class ChrsGrid : public Node
@@ -27,6 +26,8 @@ private:
 
 private:
 	bool onTouchBegan(Touch*, Event*);
+	void onTouchMoved(Touch*, Event*);
+	void onTouchEnded(Touch*, Event*);
 
 private:
 	int m_row;//行
@@ -37,6 +38,7 @@ private:
 	ValueVector m_Letters;//单词集合
 
 	vector<vector<Chr*>> m_ChrsBox;//存放当前布局中的汉字元素
+	Vector<Chr*> m_SelectedChrs;//存放已选择的汉字集合
 };
 
 #endif

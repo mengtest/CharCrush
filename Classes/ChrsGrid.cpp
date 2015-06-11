@@ -32,6 +32,7 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 	//根据行列初始化一个空的汉字盒子大小
 	m_row = row;
 	m_col = col;
+	m_SelectedChrs.clear();
 	m_ChrsBox.resize(m_row);
 	for (auto &vec : m_ChrsBox) { vec.resize(m_col); }
 
@@ -49,6 +50,8 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
 	listener->onTouchBegan = CC_CALLBACK_2(ChrsGrid::onTouchBegan, this);
+	listener->onTouchMoved = CC_CALLBACK_2(ChrsGrid::onTouchMoved, this);
+	listener->onTouchEnded = CC_CALLBACK_2(ChrsGrid::onTouchEnded, this);
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
@@ -69,13 +72,14 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 		int x = pos.x / GRID_WIDTH;
 		int y = pos.y / GRID_WIDTH;
 
-		//得到当前选中的汉字元素
+		//得到当前选中的汉字元素，鬓设置选中颜色
 		auto chr = m_ChrsBox[x][y];
 		chr->getBg()->setTexture("char_bg_selected.png");
-		//调整背景纹理大小，待图片合适后可不调整
-		chr->getBg()->setScale(40 / chr->getBg()->getContentSize().width);
 
-		log("touch coordinate: x=%d,y=%d", x, y);
+		//加入临时选定汉字集合
+		m_SelectedChrs.pushBack(chr);
+
+		//log("touch coordinate: x=%d,y=%d", x, y);
 
 		return true;
 	}
@@ -83,6 +87,55 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 	{
 		return false;
 	}
+}
+
+void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
+{
+	//移动时也可选择
+	//将触摸点的坐标转化为模型坐标
+	auto pos = this->convertToNodeSpace(pTouch->getLocation());
+
+	//将已选的合法汉字加入临时已选汉字盒子
+	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos))
+	{
+		//得到触摸点阵列坐标
+		int x = pos.x / GRID_WIDTH;
+		int y = pos.y / GRID_WIDTH;
+
+		//得到当前触摸点的汉字元素，以及最后一次选择的汉字
+		auto chr = m_ChrsBox[x][y];
+		auto last_chr = m_SelectedChrs.back();
+		
+		//判断当前触摸点的汉字是否与最后一次选择的相邻
+		int dx = abs(chr->getX() - last_chr->getX());
+		int dy = abs(chr->getY() - last_chr->getY());
+		int d = dx + dy;
+		
+		if (dx < 2 && dy < 2 && d <= 2 && d > 0)
+		{
+			//如果符合情况，那么将其加入临时选择汉字盒子，并设置选中颜色
+			//只有当临时选择汉字集合中没有该汉字元素时，才添加
+			if (!m_SelectedChrs.contains(chr))
+			{
+				m_SelectedChrs.pushBack(chr);
+				chr->getBg()->setTexture("char_bg_selected.png");
+			}
+		}
+	}
+}
+
+void ChrsGrid::onTouchEnded(Touch*, Event*)
+{
+	//如果能消除，那么消除...
+
+	//如果不能，改变回背景颜色
+	for (auto &chr : m_SelectedChrs)
+	{
+		chr->getBg()->setTexture("char_bg_normal.png");
+	}
+
+	//清空临时已选汉字集合
+	m_SelectedChrs.clear();
 }
 
 Chr* ChrsGrid::createAChr(int x, int y)
