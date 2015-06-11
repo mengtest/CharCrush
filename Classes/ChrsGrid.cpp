@@ -172,7 +172,7 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 bool ChrsGrid::canCrush()
 {
 	//将临时已选汉字组成一个字符串
-	char selected_str[100] = {0};
+	char selected_str[1000] = {0};
 	for (auto &chr : m_SelectedChrs)
 	{
 		strcat(selected_str, chr->getString().getCString());
