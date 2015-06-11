@@ -22,13 +22,15 @@ bool Chr::init(String* str, int x, int y)
 
 	m_chr = *str;
 	m_bg = Sprite::create("char_bg_normal.png");
-	addChild(m_bg);
 	//调整背景纹理大小，待图片合适后可不调整
-	m_bg->setScale(25 / m_bg->getContentSize().width);
+	m_bg->setScale(CHR_WITDH / m_bg->getContentSize().width);
+	m_bg->setAnchorPoint(Vec2(0, 0));
+	addChild(m_bg);
 
 	//添加Label，内容就是字本身
-	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", 20);
+	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 3);
 	label->setTextColor(Color4B::BLACK);
+	label->setAnchorPoint(Vec2(0, 0));
 	addChild(label);
 
 	//初始化坐标位置

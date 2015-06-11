@@ -5,6 +5,9 @@
 
 USING_NS_CC;
 
+#define CHR_WITDH 40 //文字宽度
+#define CHR_EDGE 56 //文字矩形之斜边，为了不用乘以根号2消耗计算
+
 //汉字类，由它组成词组
 class Chr : public Node
 {
@@ -18,6 +21,9 @@ public:
 	Sprite* getBg() { return m_bg; }
 	int getX() { return m_x; }
 	int getY() { return m_y; }
+
+	void setX(int x) { m_x = x; }
+	void setY(int y) { m_y = y; }
 
 private:
 	//x,y代表坐标

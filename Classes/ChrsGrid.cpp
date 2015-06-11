@@ -32,7 +32,9 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 	//根据行列初始化一个空的汉字盒子大小
 	m_row = row;
 	m_col = col;
+	m_canCrush = false;
 	m_SelectedChrs.clear();
+	m_NewChrs.clear();
 	m_ChrsBox.resize(m_row);
 	for (auto &vec : m_ChrsBox) { vec.resize(m_col); }
 
@@ -64,9 +66,19 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 {
 	//将触摸点的坐标转化为模型坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
+
+	//得到阵列坐标
+	int x = pos.x / GRID_WIDTH;
+	int y = pos.y / GRID_WIDTH;
+
+	//得到汉字原点模型坐标
+	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
+
+	//触摸点与原点的距离
+	auto d = abs(pos.distance(chr_pos));
 	
-	//是否有按在汉字阵列上
-	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos))
+	//是否有按在汉字上
+	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos) && d < CHR_EDGE)
 	{
 		//得到阵列坐标
 		int x = pos.x / GRID_WIDTH;
@@ -79,6 +91,9 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 		//加入临时选定汉字集合
 		m_SelectedChrs.pushBack(chr);
 
+		//得到能否消除的状态
+		m_canCrush = canCrush();
+
 		//log("touch coordinate: x=%d,y=%d", x, y);
 
 		return true;
@@ -89,19 +104,30 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 	}
 }
 
+/**
+  *函数说明：移动触摸，将触摸到的新汉字元素放进已选汉字盒子
+  *如果是倒退，那么将最后一个汉字元素从已选汉字盒子中删除
+  *每一次增加/删除汉字元素，都会判断当前已选的汉字是否能消除
+  */
 void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 {
 	//移动时也可选择
 	//将触摸点的坐标转化为模型坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 
-	//将已选的合法汉字加入临时已选汉字盒子
-	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos))
-	{
-		//得到触摸点阵列坐标
-		int x = pos.x / GRID_WIDTH;
-		int y = pos.y / GRID_WIDTH;
+	//得到阵列坐标
+	int x = pos.x / GRID_WIDTH;
+	int y = pos.y / GRID_WIDTH;
 
+	//得到汉字原点模型坐标
+	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
+
+	//触摸点与原点的距离
+	auto d = abs(pos.distance(chr_pos));
+
+	//将已选的合法汉字加入临时已选汉字盒子
+	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos) && d < CHR_EDGE)
+	{
 		//得到当前触摸点的汉字元素，以及最后一次选择的汉字
 		auto chr = m_ChrsBox[x][y];
 		auto last_chr = m_SelectedChrs.back();
@@ -110,7 +136,6 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 		int dx = abs(chr->getX() - last_chr->getX());
 		int dy = abs(chr->getY() - last_chr->getY());
 		int d = dx + dy;
-		
 		if (dx < 2 && dy < 2 && d <= 2 && d > 0)
 		{
 			//如果符合情况，那么将其加入临时选择汉字盒子，并设置选中颜色
@@ -119,23 +144,176 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 			{
 				m_SelectedChrs.pushBack(chr);
 				chr->getBg()->setTexture("char_bg_selected.png");
+				
+				//得到能否消除的状态
+				m_canCrush = canCrush();
+			}
+		}
+
+		//如果当前触摸点是已选汉字盒子中倒数第二个汉字，说明是后退操作
+		//将倒数第一个元素删除出已选汉字盒子
+		if (m_SelectedChrs.size() >= 2)
+		{
+			//得到倒数第二个元素，判断是否和触摸点的元素一致
+			auto secondlast_chr = m_SelectedChrs.at(m_SelectedChrs.size()-2);
+			if (secondlast_chr == chr)
+			{
+				//将最后一个元素删除出去
+				m_SelectedChrs.back()->getBg()->setTexture("char_bg_normal.png");
+				m_SelectedChrs.popBack();
+
+				//得到能否消除的状态
+				m_canCrush = canCrush();
 			}
 		}
 	}
 }
 
-void ChrsGrid::onTouchEnded(Touch*, Event*)
+bool ChrsGrid::canCrush()
 {
-	//如果能消除，那么消除...
-
-	//如果不能，改变回背景颜色
+	//将临时已选汉字组成一个字符串
+	char selected_str[100] = {0};
 	for (auto &chr : m_SelectedChrs)
 	{
-		chr->getBg()->setTexture("char_bg_normal.png");
+		strcat(selected_str, chr->getString().getCString());
 	}
 
+	//遍历单词集合，如果和其中一条吻合，那么即可消除
+	for (auto &val : m_Letters)
+	{
+		if (strcmp(selected_str, val.asString().c_str()) == 0)
+		{
+			//将其颜色设置成可消除
+			for (auto &chr : m_SelectedChrs)
+			{
+				chr->getBg()->setTexture("char_bg_crush.png");
+			}
+			return true;
+		}
+	}
+
+	//遍历完毕也没有，那么说明不能消除
+	//将其颜色设置成选择
+	for (auto &chr : m_SelectedChrs)
+	{
+		chr->getBg()->setTexture("char_bg_selected.png");
+	}
+	return false;
+}
+
+void ChrsGrid::onTouchEnded(Touch*, Event*)
+{
+	//如果能消除，那么清除已选文字
+	if (m_canCrush)
+	{
+		//首先暂停触摸
+		_eventDispatcher->pauseEventListenersForTarget(this);
+
+		for (auto &chr : m_SelectedChrs)
+		{
+			//清除该汉字，然后添加一个新汉字到新汉字盒子
+			clearSelectedChr(chr);
+		}
+
+		//使汉字掉落，同时开启掉落状态捕捉函数
+		dropChrs();
+		schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
+	}
+	else
+	{
+		//如果不能，改变回背景颜色
+		for (auto &chr : m_SelectedChrs)
+		{
+			chr->getBg()->setTexture("char_bg_normal.png");
+		}
+	}
+	
 	//清空临时已选汉字集合
 	m_SelectedChrs.clear();
+}
+
+//汉字掉落状态捕捉函数，当新汉字掉落完，并清除出新汉字盒子时，掉落完毕
+void ChrsGrid::onChrsDropping(float dt) 
+{
+	//如果新汉字都掉落完，停止该捕捉函数，并恢复触摸
+	if (m_NewChrs.empty())
+	{
+		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
+		_eventDispatcher->resumeEventListenersForTarget(this);
+	}
+}
+ 
+void ChrsGrid::clearSelectedChr(Chr* chr)
+{
+	//将汉字盒子中的对应元素置为空
+	m_ChrsBox[chr->getX()][chr->getY()] = nullptr;
+
+	//生成一个新的汉字元素，将其加入临时新汉字盒子
+	//与欲消除的汉字同列，但位于阵列最上面一行的上一行
+	auto new_chr = createAChr(chr->getX(), m_row);
+	m_NewChrs.pushBack(new_chr);
+
+	//将汉字元素从父节点移除
+	chr->removeFromParent();
+}
+
+void ChrsGrid::dropChrs()
+{
+	for (int x = 0; x < m_col; x++)
+	{
+		auto pChrsBox = &m_ChrsBox;
+
+		int space = 0;//记录当前列的空格数
+		for (int y = 0; y < m_row; y++)
+		{
+			auto chr = m_ChrsBox[x][y];
+
+			if (!chr)
+			{
+				space++;
+				continue;
+			}
+			else if (space != 0)//如果该列出现了空格，那么应该掉落
+			{
+				chr->setY(chr->getY() - space);//重置其坐标y值
+
+				auto move = MoveBy::create(0.2, Vec2(0, -space*GRID_WIDTH));
+				auto call = CallFunc::create([pChrsBox, chr](){
+					//更新汉字盒子内的数据
+					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
+				});
+
+				chr->runAction(Sequence::create(move, call, nullptr));//准备下落的动作
+			}
+		}
+
+		//如果遍历完列，space不为0，那么该列存在新汉字，让新汉字掉落
+		if (space == 0)
+		{
+			continue;
+		}
+
+		int n = space;
+		int delta = 1;//设定速度阶梯的辅助变量
+		for (auto &chr : m_NewChrs)
+		{
+			if (chr->getX() == x)
+			{
+				chr->setY(m_row - n);
+
+				auto delay = DelayTime::create(0.2);
+				//后下落的速度设置慢一些
+				auto move = MoveBy::create(0.2*delta++, Vec2(0, -n--*GRID_WIDTH));
+				auto call = CallFunc::create([chr, pChrsBox, this](){
+					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
+					//从新汉字盒子中移除该汉字，也就是说，当新汉字盒子为空时，消除结束
+					m_NewChrs.eraseObject(chr);
+				});
+
+				chr->runAction(Sequence::create(delay, move, call, nullptr));
+			}
+		}
+	}
 }
 
 Chr* ChrsGrid::createAChr(int x, int y)

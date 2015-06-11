@@ -19,11 +19,12 @@ bool GameScene::init()
 	//加载texture
 	TextureCache::getInstance()->addImage("char_bg_selected.png");
 	TextureCache::getInstance()->addImage("char_bg_normal.png");
+	TextureCache::getInstance()->addImage("char_bg_crush.png");
 
 	//根据行列以及单词列表文件，创建一个汉字阵列
-	auto chrsgrid = ChrsGrid::create("letters_1.plist", 5, 5);
+	auto chrsgrid = ChrsGrid::create("letters_1.plist", 6, 6);
 	addChild(chrsgrid);
-	chrsgrid->setPosition(100 ,100);
+	chrsgrid->setPosition(0 ,280);
 	
 	return true;
 }
