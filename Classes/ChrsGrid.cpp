@@ -38,12 +38,15 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 	m_ChrsBox.resize(m_row);
 	for (auto &vec : m_ChrsBox) { vec.resize(m_col); }
 
+	//生成汉字字典树
+	createTrie(&chr_root, &m_Letters);
+
 	//1.根据布局大小创建出汉字阵列
 	//2.布局坐标以左下角为原点，x右y上为正方向
 	for (int x = 0; x < m_col; x++)
 	{
 		for (int y = 0; y < m_row; y++)
-		{
+		{ 
 			m_ChrsBox[x][y] = createAChr(x, y); 
 		}
 	}
@@ -178,6 +181,10 @@ bool ChrsGrid::canCrush()
 		strcat(selected_str, chr->getString().getCString());
 	}
 
+	auto letter = string(selected_str);
+	return isLetterMatching(&chr_root, &letter);
+
+	/*
 	//遍历单词集合，如果和其中一条吻合，那么即可消除
 	for (auto &val : m_Letters)
 	{
@@ -199,6 +206,7 @@ bool ChrsGrid::canCrush()
 		chr->getBg()->setTexture("char_bg_selected.png");
 	}
 	return false;
+	*/
 }
 
 void ChrsGrid::onTouchEnded(Touch*, Event*)
@@ -380,4 +388,118 @@ void ChrsGrid::initChrBox()
 			i += 3;
 		}
 	}
+}
+
+bool isChrExist(String* chr, struct ChrTrie *p, int *n)
+{
+	int i = 0;
+    *n = i;
+
+    while (p->next[i] != NULL && i < MAX)
+    {
+		if (strcmp(chr->getCString(), p->next[i]->chr->getCString()) == 0)
+        {
+            return true;
+        }
+
+        i++;
+        *n = i;
+    }
+
+    return false;
+}
+
+void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
+{
+	//使字典树根中的next内容都为空
+	for (int i = 0; i < MAX; i++)
+	{
+		chr_root->next[i] = nullptr;
+		chr_root->chr = nullptr;
+		chr_root->isEnding = false;
+	}
+
+	for (auto &val : *letters)
+	{
+		//每一次遍历一个letter，都从根节点开始
+		struct ChrTrie *p = chr_root;
+
+		auto letter = val.asString();//获得单个单词
+		int i = 0;
+		while (i < letter.size())
+		{
+			//从letter中选定一个字
+			char buf[4] = {0};
+			memcpy(buf, &letter.at(i), 3);
+			auto chr = String::createWithFormat("%s", buf);
+
+			 //判断该字是否存在于p的子节点中
+            int n = 0;//n表示p的字节点第几个是NULL，用来进行填充
+			if (isChrExist(chr, p, &n) == false)
+            {
+                //如果不存在，那么给该字开辟一个空间
+                struct ChrTrie *pChr = (struct ChrTrie*)malloc(sizeof(struct ChrTrie));
+				for (int i = 0; i < MAX; i++)
+				{
+					pChr->next[i] = nullptr;
+					pChr->chr = nullptr;
+					pChr->isEnding = false;
+				}
+                pChr->chr = chr;//将其内容设置成chr
+                p->next[n] = pChr;
+                p = p->next[n];//p下移
+            }
+			else //如果该字存在于p的字节点中
+			{
+				p = p->next[n];
+			}
+
+			//如果该汉字是单词的最后一个字，置结尾标志为true
+			if (i == letter.size() - 3)
+			{
+				log ("%s is ending", p->chr->getCString());
+				p->isEnding = true;
+			}
+
+			i += 3;
+		}
+		
+	}
+}
+
+bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter)
+{
+	auto p = chr_root;
+
+	//遍历根节点之子节点
+	int n = 0;//n代表字节点序列
+	int i = 0;//i代表字符串序列
+	while (p->next[n] != NULL && i < pLetter->size())
+	{
+		//如果p的子节点有相应字符，那么往下遍历
+		//buf存放pLetter中的一个字
+		char buf[4] = {0};
+		memcpy(buf, &(pLetter->at(i)), 3);
+		if (strcmp(buf, p->next[n]->chr->getCString()) == 0)
+		{
+			p = p->next[n];
+			i += 3;
+			n = 0;//子节点重新从第一个位置开始遍历
+			continue;
+		}
+		else
+		{
+			n++;//横向遍历子节点
+		}
+	}
+	
+	if (p->isEnding)
+	{
+		log("yeyeyeye!");
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
 }

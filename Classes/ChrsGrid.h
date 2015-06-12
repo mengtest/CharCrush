@@ -11,6 +11,19 @@ using namespace std;
 
 class Chr;
 
+//此为字典树的一个节点类型，用于构成字典树
+#define MAX 20 //一个节点最多有20个子节点
+struct ChrTrie
+{
+    ChrTrie* next[MAX];//此为该节点之子节点数组
+    String* chr;//该节点的汉字内容
+	bool isEnding;//单词结尾标记，true为结尾
+};
+
+void createTrie(struct ChrTrie* chr_root, ValueVector* letters);//根据单词集合生成一颗字典树
+bool isChrExist(String* chr, struct ChrTrie *p, int *n);//判断该字是否存在于p的子节点中
+bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter);//判断letter是否在字典树中匹配
+
 class ChrsGrid : public Node
 {
 public:
@@ -43,6 +56,7 @@ private:
 
 private:
 	Vector<String*> m_Chrs;//汉字集合
+	struct ChrTrie chr_root;//汉字字典树
 	ValueVector m_Letters;//单词集合
 
 	vector<vector<Chr*>> m_ChrsBox;//汉字盒子：存放当前布局中的汉字元素
