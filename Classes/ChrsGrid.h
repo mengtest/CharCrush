@@ -12,17 +12,17 @@ using namespace std;
 class Chr;
 
 //此为字典树的一个节点类型，用于构成字典树
-#define MAX 20 //一个节点最多有20个子节点
+#define MAX 20 //一个节点最多有20个子节点，实质上代表单词首字数量
 struct ChrTrie
 {
     ChrTrie* next[MAX];//此为该节点之子节点数组
-    String* chr;//该节点的汉字内容
+    char chr[4];//该节点的汉字内容
 	bool isEnding;//单词结尾标记，true为结尾
 };
 
 void createTrie(struct ChrTrie* chr_root, ValueVector* letters);//根据单词集合生成一颗字典树
 bool isChrExist(String* chr, struct ChrTrie *p, int *n);//判断该字是否存在于p的子节点中
-bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter);//判断letter是否在字典树中匹配
+bool isLetterMatchingTrie(struct ChrTrie* chr_root, string* pLetter, bool *isEnding);//判断letter是否在字典树中匹配
 
 class ChrsGrid : public Node
 {
@@ -40,6 +40,8 @@ private:
 	bool canCrush(); //判断当前已选汉字能否消除
 	void clearSelectedChr(Chr*); //清空已选汉字
 	void dropChrs(); //汉字掉落
+	bool isDeadMap();  //判断当前阵列是否无法消除
+	bool findRoot(Chr*, string* letter);//以chr为结点，判断letter是否为字典树中之终结
 
 private:
 	bool onTouchBegan(Touch*, Event*);

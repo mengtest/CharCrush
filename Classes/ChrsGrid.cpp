@@ -51,6 +51,20 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 		}
 	}
 
+	//判断是否是死图
+	while (isDeadMap())
+	{
+		//这里稍后做一个更新的算法
+		for (int x = 0; x < m_col; x++)
+		{
+			for (int y = 0; y < m_row; y++)
+			{ 
+				m_ChrsBox[x][y]->removeFromParent();
+				m_ChrsBox[x][y] = createAChr(x, y); 
+			}
+		}
+	}
+
 	//加入触摸监听
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
@@ -181,10 +195,6 @@ bool ChrsGrid::canCrush()
 		strcat(selected_str, chr->getString().getCString());
 	}
 
-	auto letter = string(selected_str);
-	return isLetterMatching(&chr_root, &letter);
-
-	/*
 	//遍历单词集合，如果和其中一条吻合，那么即可消除
 	for (auto &val : m_Letters)
 	{
@@ -206,7 +216,6 @@ bool ChrsGrid::canCrush()
 		chr->getBg()->setTexture("char_bg_selected.png");
 	}
 	return false;
-	*/
 }
 
 void ChrsGrid::onTouchEnded(Touch*, Event*)
@@ -247,6 +256,23 @@ void ChrsGrid::onChrsDropping(float dt)
 	if (m_NewChrs.empty())
 	{
 		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
+
+		//判断是否是死图
+		while (isDeadMap())
+		{
+			//这里稍后做一个更新的算法
+			//1.根据布局大小创建出汉字阵列
+			//2.布局坐标以左下角为原点，x右y上为正方向
+			for (int x = 0; x < m_col; x++)
+			{
+				for (int y = 0; y < m_row; y++)
+				{ 
+					m_ChrsBox[x][y]->removeFromParent();
+					m_ChrsBox[x][y] = createAChr(x, y); 
+				}
+			}
+		}
+
 		_eventDispatcher->resumeEventListenersForTarget(this);
 	}
 }
@@ -324,6 +350,140 @@ void ChrsGrid::dropChrs()
 	}
 }
 
+bool ChrsGrid::isDeadMap()
+{
+	//遍历每一个汉字元素
+	for (int x = 0; x < m_col; x++)
+	{
+		//遍历列
+		for (int y = 0; y < m_row; y++)
+		{
+			//从汉字元素盒子中选定一个汉字元素
+			auto chr = m_ChrsBox[x][y];
+			string letter;
+			if (findRoot(chr, &letter))
+			{
+				return false;//找到路了，则不是死图，否则继续下一个chr
+			}
+		}
+	}
+
+	log ("this is a deadmap!");
+	return true;
+}
+
+bool ChrsGrid::findRoot(Chr* chr, string* letter)
+{
+	bool ending = false;//标记该汉字元素是否为结束汉字
+
+	string old_letter = *letter;//保留原有的letter用于恢复
+
+	//将汉字组成一个新的letter
+	*letter = *letter + string(chr->getString().getCString());
+	
+	//如果选定的letter能被字典包含，再判断该letter是否终点
+	if (isLetterMatchingTrie(&chr_root, letter, &ending))
+	{
+		//如果为终点，则成功寻路，否则再选一个周边的汉字，递归遍历
+		if (ending == true)
+		{
+			log ("%s", letter->c_str());
+			return true;
+		}
+		else
+		{
+			//递归遍历临近的汉字元素
+			//遍历上
+			if (chr->getY() < m_row - 1)
+			{
+				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() + 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历下
+			if (chr->getY() > 0)
+			{
+				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() - 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+			
+			//遍历左
+			if (chr->getX() > 0)
+			{
+				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY()];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历右
+			if (chr->getX() < m_col - 1)
+			{
+				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY()];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历右上
+			if ((chr->getX() < m_col - 1) && (chr->getY() < m_row - 1))
+			{
+				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() + 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历右下
+			if ((chr->getX() < m_col - 1) && chr->getY() > 0)
+			{
+				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() - 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历左上
+			if (chr->getX() > 0 && (chr->getY() < m_row - 1))
+			{
+				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() + 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//遍历左下
+			if (chr->getX() > 0 && chr->getY() > 0)
+			{
+				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() - 1];
+				if (findRoot(next_chr, letter))
+				{
+					return true;
+				}
+			}
+
+			//上下左右全遍历了而未返回，说明没找到路
+			return false;
+		}
+	}
+	else
+	{
+		*letter = old_letter;//该路行不通，回复原有的letter
+		return false;
+	}
+}
+
 Chr* ChrsGrid::createAChr(int x, int y)
 {
 	//1.根据布局坐标创建一个汉字元素，汉字内容根据汉字集合随机获得
@@ -397,7 +557,7 @@ bool isChrExist(String* chr, struct ChrTrie *p, int *n)
 
     while (p->next[i] != NULL && i < MAX)
     {
-		if (strcmp(chr->getCString(), p->next[i]->chr->getCString()) == 0)
+		if (strcmp(chr->getCString(), p->next[i]->chr) == 0)
         {
             return true;
         }
@@ -415,7 +575,7 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 	for (int i = 0; i < MAX; i++)
 	{
 		chr_root->next[i] = nullptr;
-		chr_root->chr = nullptr;
+		memset(chr_root->chr, 0, sizeof(chr_root->chr));
 		chr_root->isEnding = false;
 	}
 
@@ -442,10 +602,10 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 				for (int i = 0; i < MAX; i++)
 				{
 					pChr->next[i] = nullptr;
-					pChr->chr = nullptr;
+					memset(pChr->chr, 0, sizeof(pChr->chr));
 					pChr->isEnding = false;
 				}
-                pChr->chr = chr;//将其内容设置成chr
+				strcpy(pChr->chr, chr->getCString());//将其内容设置成chr
                 p->next[n] = pChr;
                 p = p->next[n];//p下移
             }
@@ -457,7 +617,6 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 			//如果该汉字是单词的最后一个字，置结尾标志为true
 			if (i == letter.size() - 3)
 			{
-				log ("%s is ending", p->chr->getCString());
 				p->isEnding = true;
 			}
 
@@ -467,7 +626,7 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 	}
 }
 
-bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter)
+bool isLetterMatchingTrie(struct ChrTrie* chr_root, string* pLetter, bool *isEnding)
 {
 	auto p = chr_root;
 
@@ -480,7 +639,7 @@ bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter)
 		//buf存放pLetter中的一个字
 		char buf[4] = {0};
 		memcpy(buf, &(pLetter->at(i)), 3);
-		if (strcmp(buf, p->next[n]->chr->getCString()) == 0)
+		if (strcmp(buf, p->next[n]->chr) == 0)
 		{
 			p = p->next[n];
 			i += 3;
@@ -493,13 +652,13 @@ bool isLetterMatching(struct ChrTrie* chr_root, string* pLetter)
 		}
 	}
 	
-	if (p->isEnding)
+	if (i == pLetter->size())
 	{
-		log("yeyeyeye!");
+		*isEnding = p->isEnding;
 		return true;
 	}
 	else
 	{
 		return false;
-	}	
+	}
 }
