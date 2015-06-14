@@ -8,9 +8,12 @@ USING_NS_CC;
 class GameScene : public Layer
 {
 public:
-	static Scene* createScene();
-	CREATE_FUNC(GameScene);
-	bool init();
+	static Scene* createScene(ValueMap level_info);
+	static GameScene* create(ValueMap level_info);//传入本关卡配置信息
+	bool init(ValueMap level_info);
+
+private:
+	void onBackCallBack(Ref* pSender);
 };
 
 #endif

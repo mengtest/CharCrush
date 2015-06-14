@@ -28,8 +28,8 @@ class ChrsGrid : public Node
 {
 public:
 	//根据letter.plist文件（单词集合），创建字集合，以及行、列
-	static ChrsGrid* create(const char* letterlist, int row, int col);
-	bool init(const char* letterslist, int row, int col);
+	static ChrsGrid* create(ValueMap level_info, int row, int col);
+	bool init(ValueMap level_info, int row, int col);
 
 private:
 	bool isChrExist(Vector<String*>*, String*);//判断字是否在字集合中
@@ -49,7 +49,6 @@ private:
 	void onTouchEnded(Touch*, Event*);
 
 	void onChrsDropping(float dt);//汉字掉落状态捕捉函数
-
 private:
 	int m_row;//行
 	int m_col;//列

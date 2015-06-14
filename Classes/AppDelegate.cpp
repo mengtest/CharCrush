@@ -1,4 +1,5 @@
 #include "AppDelegate.h"
+#include "LevelScene.h"
 #include "GameScene.h"
 
 USING_NS_CC;
@@ -38,6 +39,8 @@ bool AppDelegate::applicationDidFinishLaunching() {
         director->setOpenGLView(glview);
     }
 
+	glview->setDesignResolutionSize(360, 640, ResolutionPolicy::SHOW_ALL);
+
     // turn on display FPS
     director->setDisplayStats(true);
 
@@ -47,7 +50,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     register_all_packages();
 
     // create a scene. it's an autorelease object
-    auto scene = GameScene::createScene();
+    auto scene = LevelScene::createScene();
 
     // run
     director->runWithScene(scene);

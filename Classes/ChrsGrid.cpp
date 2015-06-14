@@ -1,11 +1,11 @@
 #include "ChrsGrid.h"
 #include "Chr.h"
 
-ChrsGrid* ChrsGrid::create(const char* letterlist, int row, int col)
+ChrsGrid* ChrsGrid::create(ValueMap level_info, int row, int col)
 {
 	auto chrsgrid = new ChrsGrid();
 
-	if (chrsgrid && chrsgrid->init(letterlist, row, col))
+	if (chrsgrid && chrsgrid->init(level_info, row, col))
 	{
 		chrsgrid->autorelease();
 		return chrsgrid;
@@ -17,19 +17,20 @@ ChrsGrid* ChrsGrid::create(const char* letterlist, int row, int col)
 	}	
 }
 
-bool ChrsGrid::init(const char* letterslist, int row, int col)
+bool ChrsGrid::init(ValueMap level_info, int row, int col)
 {
 	Node::init();
 
-	//µÃµ½µ¥´Ê¼¯ºÏ
-	auto sharedFile = FileUtils::getInstance();
-	m_Letters = sharedFile->getValueVectorFromFile(letterslist);
+	//å¾—åˆ°å•è¯é›†åˆ
+	//auto sharedFile = FileUtils::getInstance();
+	//m_Letters = sharedFile->getValueVectorFromFile(letterslist);
+	m_Letters = level_info.at("letter").asValueVector();
 
-	//³õÊ¼»¯ºº×Ö¼¯ºÏ
+	//åˆå§‹åŒ–æ±‰å­—é›†åˆ
 	initChrBox();
 	
-	//Éú³É²¼¾Ö
-	//¸ù¾İĞĞÁĞ³õÊ¼»¯Ò»¸ö¿ÕµÄºº×ÖºĞ×Ó´óĞ¡
+	//ç”Ÿæˆå¸ƒå±€
+	//æ ¹æ®è¡Œåˆ—åˆå§‹åŒ–ä¸€ä¸ªç©ºçš„æ±‰å­—ç›’å­å¤§å°
 	m_row = row;
 	m_col = col;
 	m_canCrush = false;
@@ -38,11 +39,11 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 	m_ChrsBox.resize(m_row);
 	for (auto &vec : m_ChrsBox) { vec.resize(m_col); }
 
-	//Éú³Éºº×Ö×ÖµäÊ÷
+	//ç”Ÿæˆæ±‰å­—å­—å…¸æ ‘
 	createTrie(&chr_root, &m_Letters);
 
-	//1.¸ù¾İ²¼¾Ö´óĞ¡´´½¨³öºº×ÖÕóÁĞ
-	//2.²¼¾Ö×ø±êÒÔ×óÏÂ½ÇÎªÔ­µã£¬xÓÒyÉÏÎªÕı·½Ïò
+	//1.æ ¹æ®å¸ƒå±€å¤§å°åˆ›å»ºå‡ºæ±‰å­—é˜µåˆ—
+	//2.å¸ƒå±€åæ ‡ä»¥å·¦ä¸‹è§’ä¸ºåŸç‚¹ï¼Œxå³yä¸Šä¸ºæ­£æ–¹å‘
 	for (int x = 0; x < m_col; x++)
 	{
 		for (int y = 0; y < m_row; y++)
@@ -51,10 +52,10 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 		}
 	}
 
-	//ÅĞ¶ÏÊÇ·ñÊÇËÀÍ¼
+	//åˆ¤æ–­æ˜¯å¦æ˜¯æ­»å›¾
 	while (isDeadMap())
 	{
-		//ÕâÀïÉÔºó×öÒ»¸ö¸üĞÂµÄËã·¨
+		//è¿™é‡Œç¨ååšä¸€ä¸ªæ›´æ–°çš„ç®—æ³•
 		for (int x = 0; x < m_col; x++)
 		{
 			for (int y = 0; y < m_row; y++)
@@ -65,7 +66,7 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 		}
 	}
 
-	//¼ÓÈë´¥Ãş¼àÌı
+	//åŠ å…¥è§¦æ‘¸ç›‘å¬
 	auto listener = EventListenerTouchOneByOne::create();
 	listener->setSwallowTouches(true);
 	listener->onTouchBegan = CC_CALLBACK_2(ChrsGrid::onTouchBegan, this);
@@ -81,34 +82,27 @@ bool ChrsGrid::init(const char* letterslist, int row, int col)
 
 bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 {
-	//½«´¥ÃşµãµÄ×ø±ê×ª»¯ÎªÄ£ĞÍ×ø±ê
+	//å°†è§¦æ‘¸ç‚¹çš„åæ ‡è½¬åŒ–ä¸ºæ¨¡å‹åæ ‡
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 
-	//µÃµ½ÕóÁĞ×ø±ê
+	//å¾—åˆ°é˜µåˆ—åæ ‡
 	int x = pos.x / GRID_WIDTH;
 	int y = pos.y / GRID_WIDTH;
 
-	//µÃµ½ºº×ÖÔ­µãÄ£ĞÍ×ø±ê
+	//å¾—åˆ°æ±‰å­—åŸç‚¹æ¨¡å‹åæ ‡
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
-
-	//´¥ÃşµãÓëÔ­µãµÄ¾àÀë
-	auto d = abs(pos.distance(chr_pos));
 	
-	//ÊÇ·ñÓĞ°´ÔÚºº×ÖÉÏ
-	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos) && d < CHR_EDGE)
+	//æ˜¯å¦æœ‰æŒ‰åœ¨æ±‰å­—ä¸Š
+	if (Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
-		//µÃµ½ÕóÁĞ×ø±ê
-		int x = pos.x / GRID_WIDTH;
-		int y = pos.y / GRID_WIDTH;
-
-		//µÃµ½µ±Ç°Ñ¡ÖĞµÄºº×ÖÔªËØ£¬÷ŞÉèÖÃÑ¡ÖĞÑÕÉ«
+		//å¾—åˆ°å½“å‰é€‰ä¸­çš„æ±‰å­—å…ƒç´ ï¼Œé¬“è®¾ç½®é€‰ä¸­é¢œè‰²
 		auto chr = m_ChrsBox[x][y];
 		chr->getBg()->setTexture("char_bg_selected.png");
 
-		//¼ÓÈëÁÙÊ±Ñ¡¶¨ºº×Ö¼¯ºÏ
+		//åŠ å…¥ä¸´æ—¶é€‰å®šæ±‰å­—é›†åˆ
 		m_SelectedChrs.pushBack(chr);
 
-		//µÃµ½ÄÜ·ñÏû³ıµÄ×´Ì¬
+		//å¾—åˆ°èƒ½å¦æ¶ˆé™¤çš„çŠ¶æ€
 		m_canCrush = canCrush();
 
 		//log("touch coordinate: x=%d,y=%d", x, y);
@@ -122,64 +116,84 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 }
 
 /**
-  *º¯ÊıËµÃ÷£ºÒÆ¶¯´¥Ãş£¬½«´¥Ãşµ½µÄĞÂºº×ÖÔªËØ·Å½øÒÑÑ¡ºº×ÖºĞ×Ó
-  *Èç¹ûÊÇµ¹ÍË£¬ÄÇÃ´½«×îºóÒ»¸öºº×ÖÔªËØ´ÓÒÑÑ¡ºº×ÖºĞ×ÓÖĞÉ¾³ı
-  *Ã¿Ò»´ÎÔö¼Ó/É¾³ıºº×ÖÔªËØ£¬¶¼»áÅĞ¶Ïµ±Ç°ÒÑÑ¡µÄºº×ÖÊÇ·ñÄÜÏû³ı
+  *å‡½æ•°è¯´æ˜ï¼šç§»åŠ¨è§¦æ‘¸ï¼Œå°†è§¦æ‘¸åˆ°çš„æ–°æ±‰å­—å…ƒç´ æ”¾è¿›å·²é€‰æ±‰å­—ç›’å­
+  *å¦‚æœæ˜¯å€’é€€ï¼Œé‚£ä¹ˆå°†æœ€åä¸€ä¸ªæ±‰å­—å…ƒç´ ä»å·²é€‰æ±‰å­—ç›’å­ä¸­åˆ é™¤
+  *æ¯ä¸€æ¬¡å¢åŠ /åˆ é™¤æ±‰å­—å…ƒç´ ï¼Œéƒ½ä¼šåˆ¤æ–­å½“å‰å·²é€‰çš„æ±‰å­—æ˜¯å¦èƒ½æ¶ˆé™¤
   */
 void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 {
-	//ÒÆ¶¯Ê±Ò²¿ÉÑ¡Ôñ
-	//½«´¥ÃşµãµÄ×ø±ê×ª»¯ÎªÄ£ĞÍ×ø±ê
+	//ç§»åŠ¨æ—¶ä¹Ÿå¯é€‰æ‹©
+	//å°†è§¦æ‘¸ç‚¹çš„åæ ‡è½¬åŒ–ä¸ºæ¨¡å‹åæ ‡
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 
-	//µÃµ½ÕóÁĞ×ø±ê
+	//å¾—åˆ°é˜µåˆ—åæ ‡
 	int x = pos.x / GRID_WIDTH;
 	int y = pos.y / GRID_WIDTH;
 
-	//µÃµ½ºº×ÖÔ­µãÄ£ĞÍ×ø±ê
+	//å¾—åˆ°æ±‰å­—åŸç‚¹æ¨¡å‹åæ ‡
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
 
-	//´¥ÃşµãÓëÔ­µãµÄ¾àÀë
-	auto d = abs(pos.distance(chr_pos));
-
-	//½«ÒÑÑ¡µÄºÏ·¨ºº×Ö¼ÓÈëÁÙÊ±ÒÑÑ¡ºº×ÖºĞ×Ó
-	if (Rect(0, 0, m_col*GRID_WIDTH, m_row*GRID_WIDTH).containsPoint(pos) && d < CHR_EDGE)
+	//å°†å·²é€‰çš„åˆæ³•æ±‰å­—åŠ å…¥ä¸´æ—¶å·²é€‰æ±‰å­—ç›’å­
+	if (y < m_row && x < 6 && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
-		//µÃµ½µ±Ç°´¥ÃşµãµÄºº×ÖÔªËØ£¬ÒÔ¼°×îºóÒ»´ÎÑ¡ÔñµÄºº×Ö
+		//å¾—åˆ°å½“å‰è§¦æ‘¸ç‚¹çš„æ±‰å­—å…ƒç´ ï¼Œä»¥åŠæœ€åä¸€æ¬¡é€‰æ‹©çš„æ±‰å­—
 		auto chr = m_ChrsBox[x][y];
 		auto last_chr = m_SelectedChrs.back();
 		
-		//ÅĞ¶Ïµ±Ç°´¥ÃşµãµÄºº×ÖÊÇ·ñÓë×îºóÒ»´ÎÑ¡ÔñµÄÏàÁÚ
+		//åˆ¤æ–­å½“å‰è§¦æ‘¸ç‚¹çš„æ±‰å­—æ˜¯å¦ä¸æœ€åä¸€æ¬¡é€‰æ‹©çš„ç›¸é‚»
 		int dx = abs(chr->getX() - last_chr->getX());
 		int dy = abs(chr->getY() - last_chr->getY());
 		int d = dx + dy;
 		if (dx < 2 && dy < 2 && d <= 2 && d > 0)
 		{
-			//Èç¹û·ûºÏÇé¿ö£¬ÄÇÃ´½«Æä¼ÓÈëÁÙÊ±Ñ¡Ôñºº×ÖºĞ×Ó£¬²¢ÉèÖÃÑ¡ÖĞÑÕÉ«
-			//Ö»ÓĞµ±ÁÙÊ±Ñ¡Ôñºº×Ö¼¯ºÏÖĞÃ»ÓĞ¸Ãºº×ÖÔªËØÊ±£¬²ÅÌí¼Ó
+			//å¦‚æœç¬¦åˆæƒ…å†µï¼Œé‚£ä¹ˆå°†å…¶åŠ å…¥ä¸´æ—¶é€‰æ‹©æ±‰å­—ç›’å­ï¼Œå¹¶è®¾ç½®é€‰ä¸­é¢œè‰²
+			//åªæœ‰å½“ä¸´æ—¶é€‰æ‹©æ±‰å­—é›†åˆä¸­æ²¡æœ‰è¯¥æ±‰å­—å…ƒç´ æ—¶ï¼Œæ‰æ·»åŠ 
 			if (!m_SelectedChrs.contains(chr))
 			{
+				//åˆ¤æ–­å“ªä¸ªç®­å¤´æ˜¾ç¤º
+				int dx = chr->getX() - last_chr->getX();
+				int dy = chr->getY() - last_chr->getY();
+				if (d == 1)
+				{
+					if (dy ==  1) { (last_chr->getArrow())[0]->setVisible(true);; } //ä¸Š
+					if (dy == -1) { (last_chr->getArrow())[1]->setVisible(true);; } //ä¸‹
+					if (dx == -1) { (last_chr->getArrow())[2]->setVisible(true);; } //å·¦
+					if (dx ==  1) { (last_chr->getArrow())[3]->setVisible(true);; } //å³
+				}
+				if (d == 2)
+				{
+					if (dx > 0 && dy > 0) { (last_chr->getArrow())[4]->setVisible(true); } //å³ä¸Š
+					if (dx > 0 && dy < 0) { (last_chr->getArrow())[5]->setVisible(true); } //å³ä¸‹
+					if (dx < 0 && dy > 0) { (last_chr->getArrow())[6]->setVisible(true); } //å·¦ä¸Š
+					if (dx < 0 && dy < 0) { (last_chr->getArrow())[7]->setVisible(true); } //å·¦ä¸‹
+				}
+				
 				m_SelectedChrs.pushBack(chr);
 				chr->getBg()->setTexture("char_bg_selected.png");
 				
-				//µÃµ½ÄÜ·ñÏû³ıµÄ×´Ì¬
+				//å¾—åˆ°èƒ½å¦æ¶ˆé™¤çš„çŠ¶æ€
 				m_canCrush = canCrush();
 			}
 		}
 
-		//Èç¹ûµ±Ç°´¥ÃşµãÊÇÒÑÑ¡ºº×ÖºĞ×ÓÖĞµ¹ÊıµÚ¶ş¸öºº×Ö£¬ËµÃ÷ÊÇºóÍË²Ù×÷
-		//½«µ¹ÊıµÚÒ»¸öÔªËØÉ¾³ı³öÒÑÑ¡ºº×ÖºĞ×Ó
+		//å¦‚æœå½“å‰è§¦æ‘¸ç‚¹æ˜¯å·²é€‰æ±‰å­—ç›’å­ä¸­å€’æ•°ç¬¬äºŒä¸ªæ±‰å­—ï¼Œè¯´æ˜æ˜¯åé€€æ“ä½œ
+		//å°†å€’æ•°ç¬¬ä¸€ä¸ªå…ƒç´ åˆ é™¤å‡ºå·²é€‰æ±‰å­—ç›’å­
 		if (m_SelectedChrs.size() >= 2)
 		{
-			//µÃµ½µ¹ÊıµÚ¶ş¸öÔªËØ£¬ÅĞ¶ÏÊÇ·ñºÍ´¥ÃşµãµÄÔªËØÒ»ÖÂ
+			//å¾—åˆ°å€’æ•°ç¬¬äºŒä¸ªå…ƒç´ ï¼Œåˆ¤æ–­æ˜¯å¦å’Œè§¦æ‘¸ç‚¹çš„å…ƒç´ ä¸€è‡´
 			auto secondlast_chr = m_SelectedChrs.at(m_SelectedChrs.size()-2);
 			if (secondlast_chr == chr)
 			{
-				//½«×îºóÒ»¸öÔªËØÉ¾³ı³öÈ¥
+				//å°†æœ€åä¸€ä¸ªå…ƒç´ åˆ é™¤å‡ºå»
 				m_SelectedChrs.back()->getBg()->setTexture("char_bg_normal.png");
 				m_SelectedChrs.popBack();
 
-				//µÃµ½ÄÜ·ñÏû³ıµÄ×´Ì¬
+				//ç„¶åå°†ç°æœ‰æœ€åä¸€ä¸ªçš„æ±‰å­—çš„ç®­å¤´éšè—
+				auto chr = m_SelectedChrs.back();
+				auto arrow = chr->getArrow();
+				for (int i = 0; i < 8; i++) { if (arrow[i]->isVisible()) arrow[i]->setVisible(false); }
+
+				//å¾—åˆ°èƒ½å¦æ¶ˆé™¤çš„çŠ¶æ€
 				m_canCrush = canCrush();
 			}
 		}
@@ -188,19 +202,19 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 
 bool ChrsGrid::canCrush()
 {
-	//½«ÁÙÊ±ÒÑÑ¡ºº×Ö×é³ÉÒ»¸ö×Ö·û´®
+	//å°†ä¸´æ—¶å·²é€‰æ±‰å­—ç»„æˆä¸€ä¸ªå­—ç¬¦ä¸²
 	char selected_str[1000] = {0};
 	for (auto &chr : m_SelectedChrs)
 	{
 		strcat(selected_str, chr->getString().getCString());
 	}
 
-	//±éÀúµ¥´Ê¼¯ºÏ£¬Èç¹ûºÍÆäÖĞÒ»ÌõÎÇºÏ£¬ÄÇÃ´¼´¿ÉÏû³ı
+	//éå†å•è¯é›†åˆï¼Œå¦‚æœå’Œå…¶ä¸­ä¸€æ¡å»åˆï¼Œé‚£ä¹ˆå³å¯æ¶ˆé™¤
 	for (auto &val : m_Letters)
 	{
 		if (strcmp(selected_str, val.asString().c_str()) == 0)
 		{
-			//½«ÆäÑÕÉ«ÉèÖÃ³É¿ÉÏû³ı
+			//å°†å…¶é¢œè‰²è®¾ç½®æˆå¯æ¶ˆé™¤
 			for (auto &chr : m_SelectedChrs)
 			{
 				chr->getBg()->setTexture("char_bg_crush.png");
@@ -209,8 +223,8 @@ bool ChrsGrid::canCrush()
 		}
 	}
 
-	//±éÀúÍê±ÏÒ²Ã»ÓĞ£¬ÄÇÃ´ËµÃ÷²»ÄÜÏû³ı
-	//½«ÆäÑÕÉ«ÉèÖÃ³ÉÑ¡Ôñ
+	//éå†å®Œæ¯•ä¹Ÿæ²¡æœ‰ï¼Œé‚£ä¹ˆè¯´æ˜ä¸èƒ½æ¶ˆé™¤
+	//å°†å…¶é¢œè‰²è®¾ç½®æˆé€‰æ‹©
 	for (auto &chr : m_SelectedChrs)
 	{
 		chr->getBg()->setTexture("char_bg_selected.png");
@@ -220,49 +234,52 @@ bool ChrsGrid::canCrush()
 
 void ChrsGrid::onTouchEnded(Touch*, Event*)
 {
-	//Èç¹ûÄÜÏû³ı£¬ÄÇÃ´Çå³ıÒÑÑ¡ÎÄ×Ö
+	//å¦‚æœèƒ½æ¶ˆé™¤ï¼Œé‚£ä¹ˆæ¸…é™¤å·²é€‰æ–‡å­—
 	if (m_canCrush)
 	{
-		//Ê×ÏÈÔİÍ£´¥Ãş
+		//é¦–å…ˆæš‚åœè§¦æ‘¸
 		_eventDispatcher->pauseEventListenersForTarget(this);
 
 		for (auto &chr : m_SelectedChrs)
 		{
-			//Çå³ı¸Ãºº×Ö£¬È»ºóÌí¼ÓÒ»¸öĞÂºº×Öµ½ĞÂºº×ÖºĞ×Ó
+			//æ¸…é™¤è¯¥æ±‰å­—ï¼Œç„¶åæ·»åŠ ä¸€ä¸ªæ–°æ±‰å­—åˆ°æ–°æ±‰å­—ç›’å­
 			clearSelectedChr(chr);
 		}
 
-		//Ê¹ºº×ÖµôÂä£¬Í¬Ê±¿ªÆôµôÂä×´Ì¬²¶×½º¯Êı
+		//ä½¿æ±‰å­—æ‰è½ï¼ŒåŒæ—¶å¼€å¯æ‰è½çŠ¶æ€æ•æ‰å‡½æ•°
 		dropChrs();
 		schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
 	}
 	else
 	{
-		//Èç¹û²»ÄÜ£¬¸Ä±ä»Ø±³¾°ÑÕÉ«
+		//å¦‚æœä¸èƒ½ï¼Œæ”¹å˜å›èƒŒæ™¯é¢œè‰²ï¼Œå…¶ç®­å¤´ä¹Ÿéšè—
 		for (auto &chr : m_SelectedChrs)
 		{
 			chr->getBg()->setTexture("char_bg_normal.png");
+
+			auto arrow = chr->getArrow();
+			for (int i = 0; i < 8; i++) { if (arrow[i]->isVisible()) arrow[i]->setVisible(false); }
 		}
 	}
 	
-	//Çå¿ÕÁÙÊ±ÒÑÑ¡ºº×Ö¼¯ºÏ
+	//æ¸…ç©ºä¸´æ—¶å·²é€‰æ±‰å­—é›†åˆ
 	m_SelectedChrs.clear();
 }
 
-//ºº×ÖµôÂä×´Ì¬²¶×½º¯Êı£¬µ±ĞÂºº×ÖµôÂäÍê£¬²¢Çå³ı³öĞÂºº×ÖºĞ×ÓÊ±£¬µôÂäÍê±Ï
+//æ±‰å­—æ‰è½çŠ¶æ€æ•æ‰å‡½æ•°ï¼Œå½“æ–°æ±‰å­—æ‰è½å®Œï¼Œå¹¶æ¸…é™¤å‡ºæ–°æ±‰å­—ç›’å­æ—¶ï¼Œæ‰è½å®Œæ¯•
 void ChrsGrid::onChrsDropping(float dt) 
 {
-	//Èç¹ûĞÂºº×Ö¶¼µôÂäÍê£¬Í£Ö¹¸Ã²¶×½º¯Êı£¬²¢»Ö¸´´¥Ãş
+	//å¦‚æœæ–°æ±‰å­—éƒ½æ‰è½å®Œï¼Œåœæ­¢è¯¥æ•æ‰å‡½æ•°ï¼Œå¹¶æ¢å¤è§¦æ‘¸
 	if (m_NewChrs.empty())
 	{
 		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
 
-		//ÅĞ¶ÏÊÇ·ñÊÇËÀÍ¼
+		//åˆ¤æ–­æ˜¯å¦æ˜¯æ­»å›¾
 		while (isDeadMap())
 		{
-			//ÕâÀïÉÔºó×öÒ»¸ö¸üĞÂµÄËã·¨
-			//1.¸ù¾İ²¼¾Ö´óĞ¡´´½¨³öºº×ÖÕóÁĞ
-			//2.²¼¾Ö×ø±êÒÔ×óÏÂ½ÇÎªÔ­µã£¬xÓÒyÉÏÎªÕı·½Ïò
+			//è¿™é‡Œç¨ååšä¸€ä¸ªæ›´æ–°çš„ç®—æ³•
+			//1.æ ¹æ®å¸ƒå±€å¤§å°åˆ›å»ºå‡ºæ±‰å­—é˜µåˆ—
+			//2.å¸ƒå±€åæ ‡ä»¥å·¦ä¸‹è§’ä¸ºåŸç‚¹ï¼Œxå³yä¸Šä¸ºæ­£æ–¹å‘
 			for (int x = 0; x < m_col; x++)
 			{
 				for (int y = 0; y < m_row; y++)
@@ -279,15 +296,15 @@ void ChrsGrid::onChrsDropping(float dt)
  
 void ChrsGrid::clearSelectedChr(Chr* chr)
 {
-	//½«ºº×ÖºĞ×ÓÖĞµÄ¶ÔÓ¦ÔªËØÖÃÎª¿Õ
+	//å°†æ±‰å­—ç›’å­ä¸­çš„å¯¹åº”å…ƒç´ ç½®ä¸ºç©º
 	m_ChrsBox[chr->getX()][chr->getY()] = nullptr;
 
-	//Éú³ÉÒ»¸öĞÂµÄºº×ÖÔªËØ£¬½«Æä¼ÓÈëÁÙÊ±ĞÂºº×ÖºĞ×Ó
-	//ÓëÓûÏû³ıµÄºº×ÖÍ¬ÁĞ£¬µ«Î»ÓÚÕóÁĞ×îÉÏÃæÒ»ĞĞµÄÉÏÒ»ĞĞ
+	//ç”Ÿæˆä¸€ä¸ªæ–°çš„æ±‰å­—å…ƒç´ ï¼Œå°†å…¶åŠ å…¥ä¸´æ—¶æ–°æ±‰å­—ç›’å­
+	//ä¸æ¬²æ¶ˆé™¤çš„æ±‰å­—åŒåˆ—ï¼Œä½†ä½äºé˜µåˆ—æœ€ä¸Šé¢ä¸€è¡Œçš„ä¸Šä¸€è¡Œ
 	auto new_chr = createAChr(chr->getX(), m_row);
 	m_NewChrs.pushBack(new_chr);
 
-	//½«ºº×ÖÔªËØ´Ó¸¸½ÚµãÒÆ³ı
+	//å°†æ±‰å­—å…ƒç´ ä»çˆ¶èŠ‚ç‚¹ç§»é™¤
 	chr->removeFromParent();
 }
 
@@ -297,7 +314,7 @@ void ChrsGrid::dropChrs()
 	{
 		auto pChrsBox = &m_ChrsBox;
 
-		int space = 0;//¼ÇÂ¼µ±Ç°ÁĞµÄ¿Õ¸ñÊı
+		int space = 0;//è®°å½•å½“å‰åˆ—çš„ç©ºæ ¼æ•°
 		for (int y = 0; y < m_row; y++)
 		{
 			auto chr = m_ChrsBox[x][y];
@@ -307,28 +324,28 @@ void ChrsGrid::dropChrs()
 				space++;
 				continue;
 			}
-			else if (space != 0)//Èç¹û¸ÃÁĞ³öÏÖÁË¿Õ¸ñ£¬ÄÇÃ´Ó¦¸ÃµôÂä
+			else if (space != 0)//å¦‚æœè¯¥åˆ—å‡ºç°äº†ç©ºæ ¼ï¼Œé‚£ä¹ˆåº”è¯¥æ‰è½
 			{
-				chr->setY(chr->getY() - space);//ÖØÖÃÆä×ø±êyÖµ
+				chr->setY(chr->getY() - space);//é‡ç½®å…¶åæ ‡yå€¼
 
 				auto move = MoveBy::create(0.2, Vec2(0, -space*GRID_WIDTH));
 				auto call = CallFunc::create([pChrsBox, chr](){
-					//¸üĞÂºº×ÖºĞ×ÓÄÚµÄÊı¾İ
+					//æ›´æ–°æ±‰å­—ç›’å­å†…çš„æ•°æ®
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
 				});
 
-				chr->runAction(Sequence::create(move, call, nullptr));//×¼±¸ÏÂÂäµÄ¶¯×÷
+				chr->runAction(Sequence::create(move, call, nullptr));//å‡†å¤‡ä¸‹è½çš„åŠ¨ä½œ
 			}
 		}
 
-		//Èç¹û±éÀúÍêÁĞ£¬space²»Îª0£¬ÄÇÃ´¸ÃÁĞ´æÔÚĞÂºº×Ö£¬ÈÃĞÂºº×ÖµôÂä
+		//å¦‚æœéå†å®Œåˆ—ï¼Œspaceä¸ä¸º0ï¼Œé‚£ä¹ˆè¯¥åˆ—å­˜åœ¨æ–°æ±‰å­—ï¼Œè®©æ–°æ±‰å­—æ‰è½
 		if (space == 0)
 		{
 			continue;
 		}
 
 		int n = space;
-		int delta = 1;//Éè¶¨ËÙ¶È½×ÌİµÄ¸¨Öú±äÁ¿
+		int delta = 1;//è®¾å®šé€Ÿåº¦é˜¶æ¢¯çš„è¾…åŠ©å˜é‡
 		for (auto &chr : m_NewChrs)
 		{
 			if (chr->getX() == x)
@@ -336,11 +353,11 @@ void ChrsGrid::dropChrs()
 				chr->setY(m_row - n);
 
 				auto delay = DelayTime::create(0.2);
-				//ºóÏÂÂäµÄËÙ¶ÈÉèÖÃÂıÒ»Ğ©
+				//åä¸‹è½çš„é€Ÿåº¦è®¾ç½®æ…¢ä¸€äº›
 				auto move = MoveBy::create(0.2*delta++, Vec2(0, -n--*GRID_WIDTH));
 				auto call = CallFunc::create([chr, pChrsBox, this](){
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
-					//´ÓĞÂºº×ÖºĞ×ÓÖĞÒÆ³ı¸Ãºº×Ö£¬Ò²¾ÍÊÇËµ£¬µ±ĞÂºº×ÖºĞ×ÓÎª¿ÕÊ±£¬Ïû³ı½áÊø
+					//ä»æ–°æ±‰å­—ç›’å­ä¸­ç§»é™¤è¯¥æ±‰å­—ï¼Œä¹Ÿå°±æ˜¯è¯´ï¼Œå½“æ–°æ±‰å­—ç›’å­ä¸ºç©ºæ—¶ï¼Œæ¶ˆé™¤ç»“æŸ
 					m_NewChrs.eraseObject(chr);
 				});
 
@@ -352,18 +369,18 @@ void ChrsGrid::dropChrs()
 
 bool ChrsGrid::isDeadMap()
 {
-	//±éÀúÃ¿Ò»¸öºº×ÖÔªËØ
+	//éå†æ¯ä¸€ä¸ªæ±‰å­—å…ƒç´ 
 	for (int x = 0; x < m_col; x++)
 	{
-		//±éÀúÁĞ
+		//éå†åˆ—
 		for (int y = 0; y < m_row; y++)
 		{
-			//´Óºº×ÖÔªËØºĞ×ÓÖĞÑ¡¶¨Ò»¸öºº×ÖÔªËØ
+			//ä»æ±‰å­—å…ƒç´ ç›’å­ä¸­é€‰å®šä¸€ä¸ªæ±‰å­—å…ƒç´ 
 			auto chr = m_ChrsBox[x][y];
 			string letter;
 			if (findRoot(chr, &letter))
 			{
-				return false;//ÕÒµ½Â·ÁË£¬Ôò²»ÊÇËÀÍ¼£¬·ñÔò¼ÌĞøÏÂÒ»¸öchr
+				return false;//æ‰¾åˆ°è·¯äº†ï¼Œåˆ™ä¸æ˜¯æ­»å›¾ï¼Œå¦åˆ™ç»§ç»­ä¸‹ä¸€ä¸ªchr
 			}
 		}
 	}
@@ -374,26 +391,26 @@ bool ChrsGrid::isDeadMap()
 
 bool ChrsGrid::findRoot(Chr* chr, string* letter)
 {
-	bool ending = false;//±ê¼Ç¸Ãºº×ÖÔªËØÊÇ·ñÎª½áÊøºº×Ö
+	bool ending = false;//æ ‡è®°è¯¥æ±‰å­—å…ƒç´ æ˜¯å¦ä¸ºç»“æŸæ±‰å­—
 
-	string old_letter = *letter;//±£ÁôÔ­ÓĞµÄletterÓÃÓÚ»Ö¸´
+	string old_letter = *letter;//ä¿ç•™åŸæœ‰çš„letterç”¨äºæ¢å¤
 
-	//½«ºº×Ö×é³ÉÒ»¸öĞÂµÄletter
+	//å°†æ±‰å­—ç»„æˆä¸€ä¸ªæ–°çš„letter
 	*letter = *letter + string(chr->getString().getCString());
 	
-	//Èç¹ûÑ¡¶¨µÄletterÄÜ±»×Öµä°üº¬£¬ÔÙÅĞ¶Ï¸ÃletterÊÇ·ñÖÕµã
+	//å¦‚æœé€‰å®šçš„letterèƒ½è¢«å­—å…¸åŒ…å«ï¼Œå†åˆ¤æ–­è¯¥letteræ˜¯å¦ç»ˆç‚¹
 	if (isLetterMatchingTrie(&chr_root, letter, &ending))
 	{
-		//Èç¹ûÎªÖÕµã£¬Ôò³É¹¦Ñ°Â·£¬·ñÔòÔÙÑ¡Ò»¸öÖÜ±ßµÄºº×Ö£¬µİ¹é±éÀú
+		//å¦‚æœä¸ºç»ˆç‚¹ï¼Œåˆ™æˆåŠŸå¯»è·¯ï¼Œå¦åˆ™å†é€‰ä¸€ä¸ªå‘¨è¾¹çš„æ±‰å­—ï¼Œé€’å½’éå†
 		if (ending == true)
 		{
-			log ("%s", letter->c_str());
+			//log ("%s", letter->c_str());
 			return true;
 		}
 		else
 		{
-			//µİ¹é±éÀúÁÙ½üµÄºº×ÖÔªËØ
-			//±éÀúÉÏ
+			//é€’å½’éå†ä¸´è¿‘çš„æ±‰å­—å…ƒç´ 
+			//éå†ä¸Š
 			if (chr->getY() < m_row - 1)
 			{
 				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() + 1];
@@ -403,7 +420,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀúÏÂ
+			//éå†ä¸‹
 			if (chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() - 1];
@@ -413,7 +430,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 			
-			//±éÀú×ó
+			//éå†å·¦
 			if (chr->getX() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY()];
@@ -423,7 +440,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀúÓÒ
+			//éå†å³
 			if (chr->getX() < m_col - 1)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY()];
@@ -433,7 +450,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀúÓÒÉÏ
+			//éå†å³ä¸Š
 			if ((chr->getX() < m_col - 1) && (chr->getY() < m_row - 1))
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() + 1];
@@ -443,7 +460,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀúÓÒÏÂ
+			//éå†å³ä¸‹
 			if ((chr->getX() < m_col - 1) && chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() - 1];
@@ -453,7 +470,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀú×óÉÏ
+			//éå†å·¦ä¸Š
 			if (chr->getX() > 0 && (chr->getY() < m_row - 1))
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() + 1];
@@ -463,7 +480,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//±éÀú×óÏÂ
+			//éå†å·¦ä¸‹
 			if (chr->getX() > 0 && chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() - 1];
@@ -473,22 +490,22 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 				}
 			}
 
-			//ÉÏÏÂ×óÓÒÈ«±éÀúÁË¶øÎ´·µ»Ø£¬ËµÃ÷Ã»ÕÒµ½Â·
+			//ä¸Šä¸‹å·¦å³å…¨éå†äº†è€Œæœªè¿”å›ï¼Œè¯´æ˜æ²¡æ‰¾åˆ°è·¯
 			return false;
 		}
 	}
 	else
 	{
-		*letter = old_letter;//¸ÃÂ·ĞĞ²»Í¨£¬»Ø¸´Ô­ÓĞµÄletter
+		*letter = old_letter;//è¯¥è·¯è¡Œä¸é€šï¼Œå›å¤åŸæœ‰çš„letter
 		return false;
 	}
 }
 
 Chr* ChrsGrid::createAChr(int x, int y)
 {
-	//1.¸ù¾İ²¼¾Ö×ø±ê´´½¨Ò»¸öºº×ÖÔªËØ£¬ºº×ÖÄÚÈİ¸ù¾İºº×Ö¼¯ºÏËæ»ú»ñµÃ
-	//2.ÉèÖÃ¸Ãºº×ÖÔªËØµÄÊÀ½ç×ø±ê
-	//3.½«¸Ãºº×Ö¼ÓÈëäÖÈ¾½Úµã
+	//1.æ ¹æ®å¸ƒå±€åæ ‡åˆ›å»ºä¸€ä¸ªæ±‰å­—å…ƒç´ ï¼Œæ±‰å­—å†…å®¹æ ¹æ®æ±‰å­—é›†åˆéšæœºè·å¾—
+	//2.è®¾ç½®è¯¥æ±‰å­—å…ƒç´ çš„ä¸–ç•Œåæ ‡
+	//3.å°†è¯¥æ±‰å­—åŠ å…¥æ¸²æŸ“èŠ‚ç‚¹
 	Chr* chr = nullptr;
 
 	int i = random(0, (int)m_Chrs.size()-1);
@@ -503,7 +520,7 @@ Chr* ChrsGrid::createAChr(int x, int y)
 	return chr;
 }
 
-//ÅĞ¶Ï×ÖÊÇ·ñÔÚ×Ö¼¯ºÏÖĞ
+//åˆ¤æ–­å­—æ˜¯å¦åœ¨å­—é›†åˆä¸­
 bool ChrsGrid::isChrExist(Vector<String*>* pVec, String* letter)
 {
 	auto vec = *pVec;
@@ -519,27 +536,27 @@ bool ChrsGrid::isChrExist(Vector<String*>* pVec, String* letter)
 	return false;
 }
 
-//´Óµ¥´ÊÁĞ±íÎÄ¼şÖĞ£¬ÌáÈ¡³öºº×Ö£¬·Åµ½ºº×Ö¼¯ºÏÖĞ
+//ä»å•è¯åˆ—è¡¨æ–‡ä»¶ä¸­ï¼Œæå–å‡ºæ±‰å­—ï¼Œæ”¾åˆ°æ±‰å­—é›†åˆä¸­
 void ChrsGrid::initChrBox()
 {
 	m_Chrs.clear();
 
-	//´Óµ¥´Ê¼¯ºÏÖĞ£¬ÌôÑ¡³ö²»ÖØ¸´µÄ×Ö£¬·ÅÈë×Ö¼¯ºÏÖĞ
+	//ä»å•è¯é›†åˆä¸­ï¼ŒæŒ‘é€‰å‡ºä¸é‡å¤çš„å­—ï¼Œæ”¾å…¥å­—é›†åˆä¸­
 	for (auto &val : m_Letters)
 	{
-		//letter´ú±íÃ¿Ò»Ìõµ¥´Ê
+		//letterä»£è¡¨æ¯ä¸€æ¡å•è¯
 		auto letter = val.asString();
 
-		//±éÀúÃ¿Ò»Ìõµ¥´ÊµÄºº×Ö£¬½«×Ö·ÅÈë×Ö¼¯ºÏ
+		//éå†æ¯ä¸€æ¡å•è¯çš„æ±‰å­—ï¼Œå°†å­—æ”¾å…¥å­—é›†åˆ
 		int i = 0;
 		while (i < letter.size())
 		{
-			//Ã¿Ò»¸öºº×ÖÕ¼¾İ3¸ö×Ö½Ú£¬¼ÓÉÏ×îºóµÄ¿Õ×Ö·û£¬¹²ËÄ¸ö×Ö½Ú×é³ÉÒ»¸öString
+			//æ¯ä¸€ä¸ªæ±‰å­—å æ®3ä¸ªå­—èŠ‚ï¼ŒåŠ ä¸Šæœ€åçš„ç©ºå­—ç¬¦ï¼Œå…±å››ä¸ªå­—èŠ‚ç»„æˆä¸€ä¸ªString
 			char buf[4] = {0};
 			memcpy(buf, &letter.at(i), 3);
 			auto letter = String::createWithFormat("%s", buf);
 
-			//ÅĞ¶Ï¸Ãµ¥´ÊÊÇ·ñÔÚ×Ö¼¯ºÏÖĞÓĞÖØ¸´£¬²»ÖØ¸´²Å¼ÓÈë×Ö¼¯ºÏ
+			//åˆ¤æ–­è¯¥å•è¯æ˜¯å¦åœ¨å­—é›†åˆä¸­æœ‰é‡å¤ï¼Œä¸é‡å¤æ‰åŠ å…¥å­—é›†åˆ
 			if (!isChrExist(&m_Chrs, letter))
 			{
 				m_Chrs.pushBack(letter);
@@ -571,7 +588,7 @@ bool isChrExist(String* chr, struct ChrTrie *p, int *n)
 
 void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 {
-	//Ê¹×ÖµäÊ÷¸ùÖĞµÄnextÄÚÈİ¶¼Îª¿Õ
+	//ä½¿å­—å…¸æ ‘æ ¹ä¸­çš„nextå†…å®¹éƒ½ä¸ºç©º
 	for (int i = 0; i < MAX; i++)
 	{
 		chr_root->next[i] = nullptr;
@@ -581,23 +598,23 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 
 	for (auto &val : *letters)
 	{
-		//Ã¿Ò»´Î±éÀúÒ»¸öletter£¬¶¼´Ó¸ù½Úµã¿ªÊ¼
+		//æ¯ä¸€æ¬¡éå†ä¸€ä¸ªletterï¼Œéƒ½ä»æ ¹èŠ‚ç‚¹å¼€å§‹
 		struct ChrTrie *p = chr_root;
 
-		auto letter = val.asString();//»ñµÃµ¥¸öµ¥´Ê
+		auto letter = val.asString();//è·å¾—å•ä¸ªå•è¯
 		int i = 0;
 		while (i < letter.size())
 		{
-			//´ÓletterÖĞÑ¡¶¨Ò»¸ö×Ö
+			//ä»letterä¸­é€‰å®šä¸€ä¸ªå­—
 			char buf[4] = {0};
 			memcpy(buf, &letter.at(i), 3);
 			auto chr = String::createWithFormat("%s", buf);
 
-			 //ÅĞ¶Ï¸Ã×ÖÊÇ·ñ´æÔÚÓÚpµÄ×Ó½ÚµãÖĞ
-            int n = 0;//n±íÊ¾pµÄ×Ö½ÚµãµÚ¼¸¸öÊÇNULL£¬ÓÃÀ´½øĞĞÌî³ä
+			 //åˆ¤æ–­è¯¥å­—æ˜¯å¦å­˜åœ¨äºpçš„å­èŠ‚ç‚¹ä¸­
+            int n = 0;//nè¡¨ç¤ºpçš„å­—èŠ‚ç‚¹ç¬¬å‡ ä¸ªæ˜¯NULLï¼Œç”¨æ¥è¿›è¡Œå¡«å……
 			if (isChrExist(chr, p, &n) == false)
             {
-                //Èç¹û²»´æÔÚ£¬ÄÇÃ´¸ø¸Ã×Ö¿ª±ÙÒ»¸ö¿Õ¼ä
+                //å¦‚æœä¸å­˜åœ¨ï¼Œé‚£ä¹ˆç»™è¯¥å­—å¼€è¾Ÿä¸€ä¸ªç©ºé—´
                 struct ChrTrie *pChr = (struct ChrTrie*)malloc(sizeof(struct ChrTrie));
 				for (int i = 0; i < MAX; i++)
 				{
@@ -605,16 +622,16 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 					memset(pChr->chr, 0, sizeof(pChr->chr));
 					pChr->isEnding = false;
 				}
-				strcpy(pChr->chr, chr->getCString());//½«ÆäÄÚÈİÉèÖÃ³Échr
+				strcpy(pChr->chr, chr->getCString());//å°†å…¶å†…å®¹è®¾ç½®æˆchr
                 p->next[n] = pChr;
-                p = p->next[n];//pÏÂÒÆ
+                p = p->next[n];//pä¸‹ç§»
             }
-			else //Èç¹û¸Ã×Ö´æÔÚÓÚpµÄ×Ö½ÚµãÖĞ
+			else //å¦‚æœè¯¥å­—å­˜åœ¨äºpçš„å­—èŠ‚ç‚¹ä¸­
 			{
 				p = p->next[n];
 			}
 
-			//Èç¹û¸Ãºº×ÖÊÇµ¥´ÊµÄ×îºóÒ»¸ö×Ö£¬ÖÃ½áÎ²±êÖ¾Îªtrue
+			//å¦‚æœè¯¥æ±‰å­—æ˜¯å•è¯çš„æœ€åä¸€ä¸ªå­—ï¼Œç½®ç»“å°¾æ ‡å¿—ä¸ºtrue
 			if (i == letter.size() - 3)
 			{
 				p->isEnding = true;
@@ -630,25 +647,25 @@ bool isLetterMatchingTrie(struct ChrTrie* chr_root, string* pLetter, bool *isEnd
 {
 	auto p = chr_root;
 
-	//±éÀú¸ù½ÚµãÖ®×Ó½Úµã
-	int n = 0;//n´ú±í×Ö½ÚµãĞòÁĞ
-	int i = 0;//i´ú±í×Ö·û´®ĞòÁĞ
+	//éå†æ ¹èŠ‚ç‚¹ä¹‹å­èŠ‚ç‚¹
+	int n = 0;//nä»£è¡¨å­—èŠ‚ç‚¹åºåˆ—
+	int i = 0;//iä»£è¡¨å­—ç¬¦ä¸²åºåˆ—
 	while (p->next[n] != NULL && i < pLetter->size())
 	{
-		//Èç¹ûpµÄ×Ó½ÚµãÓĞÏàÓ¦×Ö·û£¬ÄÇÃ´ÍùÏÂ±éÀú
-		//buf´æ·ÅpLetterÖĞµÄÒ»¸ö×Ö
+		//å¦‚æœpçš„å­èŠ‚ç‚¹æœ‰ç›¸åº”å­—ç¬¦ï¼Œé‚£ä¹ˆå¾€ä¸‹éå†
+		//bufå­˜æ”¾pLetterä¸­çš„ä¸€ä¸ªå­—
 		char buf[4] = {0};
 		memcpy(buf, &(pLetter->at(i)), 3);
 		if (strcmp(buf, p->next[n]->chr) == 0)
 		{
 			p = p->next[n];
 			i += 3;
-			n = 0;//×Ó½ÚµãÖØĞÂ´ÓµÚÒ»¸öÎ»ÖÃ¿ªÊ¼±éÀú
+			n = 0;//å­èŠ‚ç‚¹é‡æ–°ä»ç¬¬ä¸€ä¸ªä½ç½®å¼€å§‹éå†
 			continue;
 		}
 		else
 		{
-			n++;//ºáÏò±éÀú×Ó½Úµã
+			n++;//æ¨ªå‘éå†å­èŠ‚ç‚¹
 		}
 	}
 	
