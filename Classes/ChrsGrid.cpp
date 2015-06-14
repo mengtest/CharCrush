@@ -82,6 +82,12 @@ bool ChrsGrid::init(ValueMap level_info, int row, int col)
 
 bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 {
+	//如果已经选择了汉字元素，那么不接受新的触摸
+	if (!m_SelectedChrs.empty())
+	{
+		return false;
+	}
+
 	//将触摸点的坐标转化为模型坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 
