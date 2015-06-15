@@ -21,6 +21,10 @@ bool LevelScene::init()
 	TextureCache::getInstance()->addImage("grid_bg.png");
 	TextureCache::getInstance()->addImage("bg.png");
 	TextureCache::getInstance()->addImage("level_bar.png");
+	TextureCache::getInstance()->addImage("labelatlas.png");
+	TextureCache::getInstance()->addImage("star1.png");
+	TextureCache::getInstance()->addImage("star2.png");
+	TextureCache::getInstance()->addImage("star3.png");
 
 	//打开关卡配置文件,levels存放了所有的关卡信息
 	auto sharedFile = FileUtils::getInstance();

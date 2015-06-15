@@ -1,6 +1,7 @@
 #include "ChrsGrid.h"
 #include "Chr.h"
 #include "ui/CocosGUI.h"
+#include "GameScene.h"
 
 ChrsGrid* ChrsGrid::create(ValueMap level_info, int col, int row)
 {
@@ -21,6 +22,8 @@ ChrsGrid* ChrsGrid::create(ValueMap level_info, int col, int row)
 bool ChrsGrid::init(ValueMap level_info, int col, int row)
 {
 	Node::init();
+
+	m_letter_info = level_info;//获取关卡配置信息
 
 	//设置棋盘的锚点和大小，锚点为中心
 	this->setContentSize(Size(col*GRID_WIDTH, row*GRID_WIDTH));
@@ -101,10 +104,8 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 		return false;
 	}
 
-	//重置系统提示汉字元素盒子
+	//重置系统提示汉字元素盒子，停止倒计时捕捉，即停止提示功能
 	resetAnswerChrs();
-
-	//停止倒计时捕捉，即停止提示功能
 	unschedule(schedule_selector(ChrsGrid::onCountdownCallBack));
 
 	//将触摸点的坐标转化为模型坐标
@@ -124,8 +125,9 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 		auto chr = m_ChrsBox[x][y];
 		chr->getBg()->setTexture("char_bg_selected.png");
 
-		//加入临时选定汉字集合
+		//加入临时选定汉字集合，然后更改游戏主界面的letter label显示
 		m_SelectedChrs.pushBack(chr);
+		((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
 
 		//得到能否消除的状态
 		m_canCrush = canCrush();
@@ -206,6 +208,9 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 				//得到能否消除的状态
 				m_canCrush = canCrush();
 			}
+
+			//更改主界面的letter label的显示
+			((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), m_canCrush);
 		}
 	}
 }
@@ -250,13 +255,18 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		//首先暂停触摸
 		_eventDispatcher->pauseEventListenersForTarget(this);
 
+		//游戏步数减去1，并加分
+		auto gamescene = (GameScene*)this->getParent();
+		gamescene->subStep();
+		gamescene->addScore(m_SelectedChrs.size() * SCORE_PER_CHR);
+
 		for (auto &chr : m_SelectedChrs)
 		{
 			//清除该汉字，然后添加一个新汉字到新汉字盒子
 			clearSelectedChr(chr);
 		}
 
-		//使汉字掉落，同时开启掉落状态捕捉函数
+		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
 		dropChrs();
 		schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
 	}
@@ -272,6 +282,8 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 
 	//清空临时已选汉字集合
 	m_SelectedChrs.clear();
+	//更改主界面的letter label的显示
+	((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
 
 	//开启倒计时捕捉，即开启提示功能
 	resetCountdown();
@@ -285,6 +297,15 @@ void ChrsGrid::onChrsDropping(float dt)
 	if (m_NewChrs.empty())
 	{
 		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
+
+		//判断是否步数终结，如果是，那么游戏结束
+		auto step = ((GameScene*)this->getParent())->getStep();
+		if (step == 0)
+		{
+			//游戏结束
+			log ("game over...");
+			return;
+		}
 
 		//判断是否是死图
 		while (isDeadMap())
@@ -423,19 +444,6 @@ bool ChrsGrid::findRoot(Chr* chr)
 		return false;
 	}
 
-	//下面这个判断的代码非常危险，我还没有搞懂如果没有这段代码出现错误的原因
-	//一定要搞懂才可
-	if (!m_AnswerChrs.empty())
-	{
-		int dx = abs(m_AnswerChrs.back()->getX() - chr->getX());
-		int dy = abs(m_AnswerChrs.back()->getY() - chr->getY());
-		if (dx > 1 || dy > 1)
-		{
-			return false;
-		}
-	}
-	//上面这个判断的代码非常危险，我还没有搞懂如果没有这段代码出现错误的原因
-
 	//将汉字组成一个新的letter
 	m_AnswerChrs.pushBack(chr);
 	auto letter = getStringFromChrs(&m_AnswerChrs);
@@ -535,6 +543,7 @@ bool ChrsGrid::findRoot(Chr* chr)
 			}
 
 			//上下左右全遍历了而未返回，说明没找到路
+			m_AnswerChrs.popBack();
 			return false;
 		}
 	}
@@ -624,8 +633,14 @@ void ChrsGrid::resetAnswerChrs()
 
 void ChrsGrid::resetCountdown()
 {
-	//不要少于5秒
-	m_countdown = 5;
+	//从关卡配置中读取倒计时
+	m_countdown = m_letter_info.at("countdown").asInt();
+	//log ("countdown = %d", m_countdown);
+	if (m_countdown == 0)
+	{
+		//如果读取到0，代表不予提示，这里设定值为10000，近似于无法提示
+		m_countdown = 10000;
+	}
 }
 
 void ChrsGrid::showAnswer()

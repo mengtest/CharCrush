@@ -11,6 +11,19 @@
 				<string>乒乓球</string>
 				<string>马拉松</string>
 			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>0</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>11</string>
+			<!-- 关卡所需分数，1星，2星，3星-->
+			<key>score1</key>
+			<string>120</string>
+			<key>score2</key>
+			<string>300</string>
+			<key>score3</key>
+			<string>600</string>
 		</dict>
 		
 		<!-- 第二个关卡信息-->
@@ -24,6 +37,19 @@
 				<string>武松</string>
 				<string>潘金莲</string>
 			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>5</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>5</string>
+			<!-- 关卡所需分数，1星，2星，3星-->
+			<key>score1</key>
+			<string>100</string>
+			<key>score2</key>
+			<string>200</string>
+			<key>score3</key>
+			<string>350</string>
 		</dict>
 		
 		<!-- 第三个关卡信息-->
@@ -32,6 +58,19 @@
 			<array>
 				<string>锄禾日当午</string>
 			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>8</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>5</string>
+			<!-- 关卡所需分数，1星，2星，3星-->
+			<key>score1</key>
+			<string>250</string>
+			<key>score2</key>
+			<string>500</string>
+			<key>score3</key>
+			<string>750</string>
 		</dict>
 	</array>
 </plist>

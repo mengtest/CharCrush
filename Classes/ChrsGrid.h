@@ -68,6 +68,7 @@ private:
 	Vector<String*> m_Chrs;//汉字集合
 	struct ChrTrie chr_root;//汉字字典树
 	ValueVector m_Letters;//单词集合
+	ValueMap m_letter_info; //关卡配置信息
 
 	vector<vector<Chr*>> m_ChrsBox;//汉字盒子：存放当前布局中的汉字元素
 	Vector<Chr*> m_SelectedChrs;//存放已选择的汉字集合
