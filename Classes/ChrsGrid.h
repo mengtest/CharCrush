@@ -41,7 +41,8 @@ private:
 	void clearSelectedChr(Chr*); //清空已选汉字
 	void dropChrs(); //汉字掉落
 	bool isDeadMap();  //判断当前阵列是否无法消除
-	bool findRoot(Chr*, string* letter);//以chr为结点，判断letter是否为字典树中之终结
+	bool findRoot(Chr*);//以chr为结点，将其添加到m_AnswerChrs，判断是否为字典树中之终结
+	string getStringFromChrs(Vector<Chr*>*);//从汉字盒子中获取字符串
 
 private:
 	bool onTouchBegan(Touch*, Event*);

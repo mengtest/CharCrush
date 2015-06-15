@@ -392,8 +392,7 @@ bool ChrsGrid::isDeadMap()
 
 			//从汉字元素盒子中选定一个汉字元素
 			auto chr = m_ChrsBox[x][y];
-			string letter;
-			if (findRoot(chr, &letter))
+			if (findRoot(chr))
 			{
 				return false;//找到路了，则不是死图，否则继续下一个chr
 			}
@@ -404,20 +403,48 @@ bool ChrsGrid::isDeadMap()
 	return true;
 }
 
-bool ChrsGrid::findRoot(Chr* chr, string *letter)
+string ChrsGrid::getStringFromChrs(Vector<Chr*>* ChrsBox)
 {
-	bool ending = false;//标记该汉字元素是否为结束汉字
+	string letter;
 
-	string old_letter = *letter;//保留原有的letter用于恢复
+	for (auto &chr : *ChrsBox)
+	{
+		letter += string(chr->getString().getCString());
+	}
+
+	return letter;
+}
+
+bool ChrsGrid::findRoot(Chr* chr)
+{
+	//避免回路
+	if (m_AnswerChrs.contains(chr))
+	{
+		return false;
+	}
+
+	//下面这个判断的代码非常危险，我还没有搞懂如果没有这段代码出现错误的原因
+	//一定要搞懂才可
+	if (!m_AnswerChrs.empty())
+	{
+		int dx = abs(m_AnswerChrs.back()->getX() - chr->getX());
+		int dy = abs(m_AnswerChrs.back()->getY() - chr->getY());
+		if (dx > 1 || dy > 1)
+		{
+			return false;
+		}
+	}
+	//上面这个判断的代码非常危险，我还没有搞懂如果没有这段代码出现错误的原因
 
 	//将汉字组成一个新的letter
-	*letter = *letter + string(chr->getString().getCString());
+	m_AnswerChrs.pushBack(chr);
+	auto letter = getStringFromChrs(&m_AnswerChrs);
+
+	bool ending = false;//标记该汉字元素是否为结束汉字
 
 	//如果选定的letter能被字典包含，再判断该letter是否终点
-	if (isLetterMatchingTrie(&chr_root, letter, &ending))
+	if (isLetterMatchingTrie(&chr_root, &letter, &ending))
 	{
-		m_AnswerChrs.pushBack(chr);
-
 		//如果为终点，则成功寻路，否则再选一个周边的汉字，递归遍历
 		if (ending == true)
 		{
@@ -431,7 +458,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getY() < m_row - 1)
 			{
 				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() + 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -441,7 +468,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX()][chr->getY() - 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -451,7 +478,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getX() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY()];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -461,7 +488,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getX() < m_col - 1)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY()];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -471,7 +498,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if ((chr->getX() < m_col - 1) && (chr->getY() < m_row - 1))
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() + 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -481,7 +508,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if ((chr->getX() < m_col - 1) && chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() + 1][chr->getY() - 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -491,7 +518,7 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getX() > 0 && (chr->getY() < m_row - 1))
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() + 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
@@ -501,20 +528,21 @@ bool ChrsGrid::findRoot(Chr* chr, string *letter)
 			if (chr->getX() > 0 && chr->getY() > 0)
 			{
 				auto next_chr = m_ChrsBox[chr->getX() - 1][chr->getY() - 1];
-				if (findRoot(next_chr, letter))
+				if (findRoot(next_chr))
 				{
 					return true;
 				}
 			}
+
+			//上下左右全遍历了而未返回，说明没找到路
+			return false;
 		}
 	}
 	else
 	{
-		*letter = old_letter;//该路行不通，回复原有的letter
+		m_AnswerChrs.popBack();//该路行不通，将chr pop出去
+		return false;
 	}
-	
-	//上下左右全遍历了而未返回，说明没找到路
-	return false;
 }
 
 Chr* ChrsGrid::createAChr(int x, int y)
