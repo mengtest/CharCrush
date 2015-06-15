@@ -86,3 +86,33 @@ bool Chr::init(String* str, int x, int y)
 
 	return true;
 }
+
+void Chr::hideArrow()
+{
+	for (int i = 0; i < 8; i++) 
+	{ 
+		if (m_arrow[i]->isVisible()) m_arrow[i]->setVisible(false);
+	}
+}
+
+void Chr::showArrow(Chr* next_chr)
+{
+	//判断哪个箭头显示
+	int dx = next_chr->getX() - this->getX();
+	int dy = next_chr->getY() - this->getY();
+	int d = abs(dx) + abs(dy);
+	if (d == 1)
+	{
+		if (dy ==  1) { (this->getArrow())[0]->setVisible(true); } //上
+		if (dy == -1) { (this->getArrow())[1]->setVisible(true); } //下
+		if (dx == -1) { (this->getArrow())[2]->setVisible(true); } //左
+		if (dx ==  1) { (this->getArrow())[3]->setVisible(true); } //右
+	}
+	if (d == 2)
+	{
+		if (dx > 0 && dy > 0) { (this->getArrow())[4]->setVisible(true); } //右上
+		if (dx > 0 && dy < 0) { (this->getArrow())[5]->setVisible(true); } //右下
+		if (dx < 0 && dy > 0) { (this->getArrow())[6]->setVisible(true); } //左上
+		if (dx < 0 && dy < 0) { (this->getArrow())[7]->setVisible(true); } //左下
+	}
+}

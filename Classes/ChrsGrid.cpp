@@ -1,11 +1,12 @@
 #include "ChrsGrid.h"
 #include "Chr.h"
+#include "ui/CocosGUI.h"
 
-ChrsGrid* ChrsGrid::create(ValueMap level_info, int row, int col)
+ChrsGrid* ChrsGrid::create(ValueMap level_info, int col, int row)
 {
 	auto chrsgrid = new ChrsGrid();
 
-	if (chrsgrid && chrsgrid->init(level_info, row, col))
+	if (chrsgrid && chrsgrid->init(level_info, col, row))
 	{
 		chrsgrid->autorelease();
 		return chrsgrid;
@@ -17,18 +18,26 @@ ChrsGrid* ChrsGrid::create(ValueMap level_info, int row, int col)
 	}	
 }
 
-bool ChrsGrid::init(ValueMap level_info, int row, int col)
+bool ChrsGrid::init(ValueMap level_info, int col, int row)
 {
 	Node::init();
 
+	//设置棋盘的锚点和大小，锚点为中心
+	this->setContentSize(Size(col*GRID_WIDTH, row*GRID_WIDTH));
+	this->setAnchorPoint(Vec2(0.5, 0.5));
+
+	//棋盘底图
+	auto gridbg = ui::Scale9Sprite::create("grid_bg.png");
+	gridbg->setContentSize(Size(col * GRID_WIDTH + 10, row * GRID_WIDTH + 10));
+	gridbg->setPosition(this->getContentSize().width / 2 - 10, this->getContentSize().height / 2 - 10);
+	addChild(gridbg);
+
 	//得到单词集合
-	//auto sharedFile = FileUtils::getInstance();
-	//m_Letters = sharedFile->getValueVectorFromFile(letterslist);
 	m_Letters = level_info.at("letter").asValueVector();
 
 	//初始化汉字集合
 	initChrBox();
-	
+
 	//生成布局
 	//根据行列初始化一个空的汉字盒子大小
 	m_row = row;
@@ -36,8 +45,8 @@ bool ChrsGrid::init(ValueMap level_info, int row, int col)
 	m_canCrush = false;
 	m_SelectedChrs.clear();
 	m_NewChrs.clear();
-	m_ChrsBox.resize(m_row);
-	for (auto &vec : m_ChrsBox) { vec.resize(m_col); }
+	m_ChrsBox.resize(m_col);
+	for (auto &vec : m_ChrsBox) { vec.resize(m_row); }
 
 	//生成汉字字典树
 	createTrie(&chr_root, &m_Letters);
@@ -75,6 +84,10 @@ bool ChrsGrid::init(ValueMap level_info, int row, int col)
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
+	//开始提示倒计时
+	resetCountdown();
+	schedule(schedule_selector(ChrsGrid::onCountdownCallBack), 1);
+
 	log("ChrsGrid init!");
 
 	return true;
@@ -88,6 +101,12 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 		return false;
 	}
 
+	//重置系统提示汉字元素盒子
+	resetAnswerChrs();
+
+	//停止倒计时捕捉，即停止提示功能
+	unschedule(schedule_selector(ChrsGrid::onCountdownCallBack));
+
 	//将触摸点的坐标转化为模型坐标
 	auto pos = this->convertToNodeSpace(pTouch->getLocation());
 
@@ -97,9 +116,9 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 
 	//得到汉字原点模型坐标
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
-	
+
 	//是否有按在汉字上
-	if (Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
+	if (y < m_row && x < m_col && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
 		//得到当前选中的汉字元素，鬓设置选中颜色
 		auto chr = m_ChrsBox[x][y];
@@ -122,10 +141,10 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 }
 
 /**
-  *函数说明：移动触摸，将触摸到的新汉字元素放进已选汉字盒子
-  *如果是倒退，那么将最后一个汉字元素从已选汉字盒子中删除
-  *每一次增加/删除汉字元素，都会判断当前已选的汉字是否能消除
-  */
+*函数说明：移动触摸，将触摸到的新汉字元素放进已选汉字盒子
+*如果是倒退，那么将最后一个汉字元素从已选汉字盒子中删除
+*每一次增加/删除汉字元素，都会判断当前已选的汉字是否能消除
+*/
 void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 {
 	//移动时也可选择
@@ -140,12 +159,12 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
 
 	//将已选的合法汉字加入临时已选汉字盒子
-	if (y < m_row && x < 6 && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
+	if (y < m_row && x < m_col && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
 		//得到当前触摸点的汉字元素，以及最后一次选择的汉字
 		auto chr = m_ChrsBox[x][y];
 		auto last_chr = m_SelectedChrs.back();
-		
+
 		//判断当前触摸点的汉字是否与最后一次选择的相邻
 		int dx = abs(chr->getX() - last_chr->getX());
 		int dy = abs(chr->getY() - last_chr->getY());
@@ -157,26 +176,11 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 			if (!m_SelectedChrs.contains(chr))
 			{
 				//判断哪个箭头显示
-				int dx = chr->getX() - last_chr->getX();
-				int dy = chr->getY() - last_chr->getY();
-				if (d == 1)
-				{
-					if (dy ==  1) { (last_chr->getArrow())[0]->setVisible(true);; } //上
-					if (dy == -1) { (last_chr->getArrow())[1]->setVisible(true);; } //下
-					if (dx == -1) { (last_chr->getArrow())[2]->setVisible(true);; } //左
-					if (dx ==  1) { (last_chr->getArrow())[3]->setVisible(true);; } //右
-				}
-				if (d == 2)
-				{
-					if (dx > 0 && dy > 0) { (last_chr->getArrow())[4]->setVisible(true); } //右上
-					if (dx > 0 && dy < 0) { (last_chr->getArrow())[5]->setVisible(true); } //右下
-					if (dx < 0 && dy > 0) { (last_chr->getArrow())[6]->setVisible(true); } //左上
-					if (dx < 0 && dy < 0) { (last_chr->getArrow())[7]->setVisible(true); } //左下
-				}
-				
+				last_chr->showArrow(chr);
+
 				m_SelectedChrs.pushBack(chr);
 				chr->getBg()->setTexture("char_bg_selected.png");
-				
+
 				//得到能否消除的状态
 				m_canCrush = canCrush();
 			}
@@ -262,14 +266,16 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		for (auto &chr : m_SelectedChrs)
 		{
 			chr->getBg()->setTexture("char_bg_normal.png");
-
-			auto arrow = chr->getArrow();
-			for (int i = 0; i < 8; i++) { if (arrow[i]->isVisible()) arrow[i]->setVisible(false); }
+			chr->hideArrow();
 		}
 	}
-	
+
 	//清空临时已选汉字集合
 	m_SelectedChrs.clear();
+
+	//开启倒计时捕捉，即开启提示功能
+	resetCountdown();
+	schedule(schedule_selector(ChrsGrid::onCountdownCallBack), 1);
 }
 
 //汉字掉落状态捕捉函数，当新汉字掉落完，并清除出新汉字盒子时，掉落完毕
@@ -299,7 +305,7 @@ void ChrsGrid::onChrsDropping(float dt)
 		_eventDispatcher->resumeEventListenersForTarget(this);
 	}
 }
- 
+
 void ChrsGrid::clearSelectedChr(Chr* chr)
 {
 	//将汉字盒子中的对应元素置为空
@@ -381,6 +387,9 @@ bool ChrsGrid::isDeadMap()
 		//遍历列
 		for (int y = 0; y < m_row; y++)
 		{
+			//存放可消除的汉字元素序列，用于系统提示
+			m_AnswerChrs.clear();
+
 			//从汉字元素盒子中选定一个汉字元素
 			auto chr = m_ChrsBox[x][y];
 			string letter;
@@ -395,7 +404,7 @@ bool ChrsGrid::isDeadMap()
 	return true;
 }
 
-bool ChrsGrid::findRoot(Chr* chr, string* letter)
+bool ChrsGrid::findRoot(Chr* chr, string *letter)
 {
 	bool ending = false;//标记该汉字元素是否为结束汉字
 
@@ -403,10 +412,12 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 
 	//将汉字组成一个新的letter
 	*letter = *letter + string(chr->getString().getCString());
-	
+
 	//如果选定的letter能被字典包含，再判断该letter是否终点
 	if (isLetterMatchingTrie(&chr_root, letter, &ending))
 	{
+		m_AnswerChrs.pushBack(chr);
+
 		//如果为终点，则成功寻路，否则再选一个周边的汉字，递归遍历
 		if (ending == true)
 		{
@@ -415,7 +426,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 		}
 		else
 		{
-			//递归遍历临近的汉字元素
+			//递归遍历临近的汉字元素，并以此汉字元素寻路
 			//遍历上
 			if (chr->getY() < m_row - 1)
 			{
@@ -435,7 +446,7 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 					return true;
 				}
 			}
-			
+
 			//遍历左
 			if (chr->getX() > 0)
 			{
@@ -495,16 +506,15 @@ bool ChrsGrid::findRoot(Chr* chr, string* letter)
 					return true;
 				}
 			}
-
-			//上下左右全遍历了而未返回，说明没找到路
-			return false;
 		}
 	}
 	else
 	{
 		*letter = old_letter;//该路行不通，回复原有的letter
-		return false;
 	}
+	
+	//上下左右全遍历了而未返回，说明没找到路
+	return false;
 }
 
 Chr* ChrsGrid::createAChr(int x, int y)
@@ -573,23 +583,88 @@ void ChrsGrid::initChrBox()
 	}
 }
 
+void ChrsGrid::resetAnswerChrs()
+{
+	//停止系统提示动作，并设置提示的汉字元素的颜色为正常
+	for (auto &chr : m_AnswerChrs)
+	{
+		chr->stopAllActions();
+		chr->hideArrow();
+		chr->getBg()->setTexture("char_bg_normal.png");	
+	}
+}
+
+void ChrsGrid::resetCountdown()
+{
+	//不要少于5秒
+	m_countdown = 5;
+}
+
+void ChrsGrid::showAnswer()
+{
+	auto pAnswerChrs = &m_AnswerChrs;
+	for (int i = 0; i < m_AnswerChrs.size(); i++)
+	{
+		auto chr = m_AnswerChrs.at(i);
+
+		//系统演示步骤：1.显示可消除颜色和连接箭头 2.等待全部词组显示完 3.显示正常颜色，去掉连接箭头
+		//共演示两次
+		auto delay1 = DelayTime::create(i / 2.0);
+		auto call1 = CallFunc::create([chr, i, pAnswerChrs](){
+			//1.改变颜色 2.添加箭头
+			chr->getBg()->setTexture("char_bg_crush.png");
+			if (i > 0){	pAnswerChrs->at(i-1)->showArrow(chr); }
+		});
+		auto delay2 = DelayTime::create((m_AnswerChrs.size() - i) / 2.0);
+		auto call2 = CallFunc::create([chr, i, pAnswerChrs](){
+			//1.改变颜色为正常 2.隐藏箭头
+			chr->getBg()->setTexture("char_bg_normal.png");
+			chr->hideArrow();
+		});
+		auto delay3 = DelayTime::create(0.5);
+
+		auto action = Repeat::create(Sequence::create(delay1, call1, delay2, call2, delay3, nullptr), 2);
+		chr->runAction(action);
+	}
+}
+
+void ChrsGrid::onCountdownCallBack(float dt)
+{
+	//log ("count=%d", m_countdown);
+
+	//如果倒计时结束，系统给予提示
+	if (m_countdown == 0)
+	{
+		unschedule(schedule_selector(ChrsGrid::onCountdownCallBack));
+
+		//重新启动倒计时
+		resetCountdown();
+		schedule(schedule_selector(ChrsGrid::onCountdownCallBack), 1);
+
+		//系统演示消除步骤
+		showAnswer();
+	}
+
+	m_countdown--;
+}
+
 bool isChrExist(String* chr, struct ChrTrie *p, int *n)
 {
 	int i = 0;
-    *n = i;
+	*n = i;
 
-    while (p->next[i] != NULL && i < MAX)
-    {
+	while (p->next[i] != NULL && i < MAX)
+	{
 		if (strcmp(chr->getCString(), p->next[i]->chr) == 0)
-        {
-            return true;
-        }
+		{
+			return true;
+		}
 
-        i++;
-        *n = i;
-    }
+		i++;
+		*n = i;
+	}
 
-    return false;
+	return false;
 }
 
 void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
@@ -616,12 +691,12 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 			memcpy(buf, &letter.at(i), 3);
 			auto chr = String::createWithFormat("%s", buf);
 
-			 //判断该字是否存在于p的子节点中
-            int n = 0;//n表示p的字节点第几个是NULL，用来进行填充
+			//判断该字是否存在于p的子节点中
+			int n = 0;//n表示p的字节点第几个是NULL，用来进行填充
 			if (isChrExist(chr, p, &n) == false)
-            {
-                //如果不存在，那么给该字开辟一个空间
-                struct ChrTrie *pChr = (struct ChrTrie*)malloc(sizeof(struct ChrTrie));
+			{
+				//如果不存在，那么给该字开辟一个空间
+				struct ChrTrie *pChr = (struct ChrTrie*)malloc(sizeof(struct ChrTrie));
 				for (int i = 0; i < MAX; i++)
 				{
 					pChr->next[i] = nullptr;
@@ -629,9 +704,9 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 					pChr->isEnding = false;
 				}
 				strcpy(pChr->chr, chr->getCString());//将其内容设置成chr
-                p->next[n] = pChr;
-                p = p->next[n];//p下移
-            }
+				p->next[n] = pChr;
+				p = p->next[n];//p下移
+			}
 			else //如果该字存在于p的字节点中
 			{
 				p = p->next[n];
@@ -645,7 +720,7 @@ void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
 
 			i += 3;
 		}
-		
+
 	}
 }
 
@@ -674,7 +749,7 @@ bool isLetterMatchingTrie(struct ChrTrie* chr_root, string* pLetter, bool *isEnd
 			n++;//横向遍历子节点
 		}
 	}
-	
+
 	if (i == pLetter->size())
 	{
 		*isEnding = p->isEnding;

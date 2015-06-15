@@ -1,6 +1,5 @@
 #include "GameScene.h"
 #include "ChrsGrid.h"
-#include "ui/CocosGUI.h"
 
 Scene* GameScene::createScene(ValueMap level_info)
 {
@@ -34,28 +33,30 @@ bool GameScene::init(ValueMap level_info)
 	auto winSize = Director::getInstance()->getWinSize();
 
 	//游戏背景
-	auto bg = Sprite::create("bg.jpg");
+	auto bg = Sprite::create("bg.png");
 	bg->setAnchorPoint(Vec2(0 ,0));
 	bg->setPosition(0, 0);
 	addChild(bg);
 
-	//棋盘底图
-	auto gridbg = ui::Scale9Sprite::create("grid_bg.png");
-	gridbg->setAnchorPoint(Vec2(0, 0));
-	gridbg->setContentSize(Size(6 * GRID_WIDTH, 6* GRID_WIDTH));
-	gridbg->setPosition(0, 270);
-	addChild(gridbg);
-
+	//顶部关卡bar
+	auto bar = Sprite::create("level_bar.png");
+	bar->setScale(0.5);
+	bar->setAnchorPoint(Vec2(0.5, 1));
+	bar->setPosition(winSize.width / 2, winSize.height);
+	addChild(bar);
+	
 	//根据行列以及单词列表文件，创建一个汉字阵列
-	auto chrsgrid = ChrsGrid::create(level_info, 6, 6);
+	int col = 7;
+	int row = 8;
+	auto chrsgrid = ChrsGrid::create(level_info, col, row);
 	addChild(chrsgrid);
-	chrsgrid->setPosition(10, 280);
+	chrsgrid->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
 
 	//测试按钮，返回关卡选择界面
 	auto back = MenuItemFont::create("返回关卡选择界面", this, menu_selector(GameScene::onBackCallBack));
 	back->setColor(Color3B::BLACK);
 	auto menu = Menu::create(back, nullptr);
-	menu->setPosition(180, 200);
+	menu->setPosition(winSize.width / 2, 100);
 	addChild(menu);
 	
 	return true;

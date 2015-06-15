@@ -5,8 +5,8 @@
 
 USING_NS_CC;
 
-#define CHR_WITDH 40 //文字宽度
-#define CHR_EDGE 54 //文字矩形之斜边，为了不用乘以根号2消耗计算
+#define CHR_WITDH 50 //文字宽度
+#define CHR_EDGE 70 //文字矩形之斜边，为了不用乘以根号2消耗计算
 
 //汉字类，由它组成词组
 class Chr : public Node
@@ -26,6 +26,8 @@ public:
 	void setY(int y) { m_y = y; }
 
 	Sprite** getArrow() { return m_arrow; }
+	void showArrow(Chr* next_chr); //根据下一个汉字元素，显示箭头
+	void hideArrow(); //隐藏所有的箭头
 
 private:
 	//x,y代表坐标

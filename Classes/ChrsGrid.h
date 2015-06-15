@@ -7,7 +7,7 @@
 USING_NS_CC;
 using namespace std;
 
-#define GRID_WIDTH 60
+#define GRID_WIDTH 70
 
 class Chr;
 
@@ -27,9 +27,9 @@ bool isLetterMatchingTrie(struct ChrTrie* chr_root, string* pLetter, bool *isEnd
 class ChrsGrid : public Node
 {
 public:
-	//根据letter.plist文件（单词集合），创建字集合，以及行、列
-	static ChrsGrid* create(ValueMap level_info, int row, int col);
-	bool init(ValueMap level_info, int row, int col);
+	//根据letter.plist文件（单词集合），创建字集合，以及行列
+	static ChrsGrid* create(ValueMap level_info, int col, int row);
+	bool init(ValueMap level_info, int col, int row);
 
 private:
 	bool isChrExist(Vector<String*>*, String*);//判断字是否在字集合中
@@ -49,11 +49,19 @@ private:
 	void onTouchEnded(Touch*, Event*);
 
 	void onChrsDropping(float dt);//汉字掉落状态捕捉函数
+	void onCountdownCallBack(float dt);//倒计时捕捉函数，每一秒钟调用一次，为0开始提示
+
 private:
 	int m_row;//行
 	int m_col;//列
 
 	bool m_canCrush;//标记当前已选汉字能否消除
+	int m_countdown;//提示倒计时，倒计时结束（0），则系统根据提示盒子进行一次提示
+
+private:
+	void resetCountdown();//重置倒计时时间
+	void resetAnswerChrs();//重置系统提示汉字盒子
+	void showAnswer(); //系统演示消除方法
 
 private:
 	Vector<String*> m_Chrs;//汉字集合
@@ -63,6 +71,7 @@ private:
 	vector<vector<Chr*>> m_ChrsBox;//汉字盒子：存放当前布局中的汉字元素
 	Vector<Chr*> m_SelectedChrs;//存放已选择的汉字集合
 	Vector<Chr*> m_NewChrs; //存放欲加入汉字阵列的汉字元素
+	Vector<Chr*> m_AnswerChrs; //存放系统提示的当前可消除的汉字序列
 };
 
 #endif
