@@ -1,4 +1,5 @@
 #include "Chr.h"
+#include "ChrsGrid.h"
 
 Chr* Chr::createWithString(String* str, int x, int y)
 {
@@ -19,6 +20,9 @@ Chr* Chr::createWithString(String* str, int x, int y)
 bool Chr::init(String* str, int x, int y)
 {
 	Node::init();
+
+	//初始化为正常类型
+	m_special_type = 0;
 
 	m_chr = *str;
 	m_bg = Sprite::create("char_bg_normal.png");
@@ -115,4 +119,24 @@ void Chr::showArrow(Chr* next_chr)
 		if (dx < 0 && dy > 0) { (this->getArrow())[6]->setVisible(true); } //左上
 		if (dx < 0 && dy < 0) { (this->getArrow())[7]->setVisible(true); } //左下
 	}
+}
+
+void Chr::bomb()
+{
+	auto chrsBox = ((ChrsGrid*)this->getParent())->getChrsBox();
+
+	//将汉字盒子中的对应元素置为空
+	(*chrsBox)[m_x][m_y] = nullptr;
+
+	this->removeFromParent();
+}
+
+void Chr::setSpecial(int type)
+{
+	if (type == 0) return; //正常类型无需设定
+
+	m_special_type = type;
+	m_bg->setTexture("char_bg_special.png");
+
+	//添加特效...
 }

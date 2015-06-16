@@ -17,6 +17,7 @@ bool LevelScene::init()
 	TextureCache::getInstance()->addImage("char_bg_selected.png");
 	TextureCache::getInstance()->addImage("char_bg_normal.png");
 	TextureCache::getInstance()->addImage("char_bg_crush.png");
+	TextureCache::getInstance()->addImage("char_bg_special.png");
 	TextureCache::getInstance()->addImage("arrow.png");
 	TextureCache::getInstance()->addImage("grid_bg.png");
 	TextureCache::getInstance()->addImage("bg.png");

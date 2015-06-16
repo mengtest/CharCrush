@@ -10,6 +10,7 @@ using namespace std;
 #define GRID_WIDTH 70
 
 class Chr;
+class GameScene;
 
 //此为字典树的一个节点类型，用于构成字典树
 #define MAX 20 //一个节点最多有20个子节点，实质上代表单词首字数量
@@ -38,7 +39,7 @@ private:
 	Chr* createAChr(int x, int y); //根据布局坐标创建一个汉字元素
 
 	bool canCrush(); //判断当前已选汉字能否消除
-	void clearSelectedChr(Chr*); //清空已选汉字
+	void addNewChrs(int x, int special_type); //增加新汉字，x是横坐标
 	void dropChrs(); //汉字掉落
 	bool isDeadMap();  //判断当前阵列是否无法消除
 	bool findRoot(Chr*);//以chr为结点，将其添加到m_AnswerChrs，判断是否为字典树中之终结
@@ -63,6 +64,10 @@ private:
 	void resetCountdown();//重置倒计时时间
 	void resetAnswerChrs();//重置系统提示汉字盒子
 	void showAnswer(); //系统演示消除方法
+	GameScene* getGameScene() { return (GameScene*)(this->getParent()->getParent()); }//得到包含该阵列的游戏场景
+
+public:
+	vector<vector<Chr*>>* getChrsBox() { return &m_ChrsBox; } //得到汉字阵列
 
 private:
 	Vector<String*> m_Chrs;//汉字集合

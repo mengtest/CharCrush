@@ -26,13 +26,19 @@ public:
 	void setY(int y) { m_y = y; }
 
 	Sprite** getArrow() { return m_arrow; }
+	int getSpecial() { return m_special_type; }
+
 	void showArrow(Chr* next_chr); //根据下一个汉字元素，显示箭头
 	void hideArrow(); //隐藏所有的箭头
+
+	void bomb(); //汉字元素消除
+	void setSpecial(int type); //根据type设定其特殊类型
 
 private:
 	//x,y代表坐标
 	int m_x;
 	int m_y;
+	int m_special_type; //特殊类型，0代表正常
 
 	String m_chr;//汉字内容
 	Sprite* m_bg;//汉字背景图

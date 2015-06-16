@@ -33,7 +33,7 @@ bool ChrsGrid::init(ValueMap level_info, int col, int row)
 	auto gridbg = ui::Scale9Sprite::create("grid_bg.png");
 	gridbg->setContentSize(Size(col * GRID_WIDTH + 10, row * GRID_WIDTH + 10));
 	gridbg->setPosition(this->getContentSize().width / 2 - 10, this->getContentSize().height / 2 - 10);
-	addChild(gridbg);
+	addChild(gridbg, 0, 1000);
 
 	//得到单词集合
 	m_Letters = level_info.at("letter").asValueVector();
@@ -127,7 +127,7 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 
 		//加入临时选定汉字集合，然后更改游戏主界面的letter label显示
 		m_SelectedChrs.pushBack(chr);
-		((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+		getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
 
 		//得到能否消除的状态
 		m_canCrush = canCrush();
@@ -210,7 +210,7 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 			}
 
 			//更改主界面的letter label的显示
-			((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), m_canCrush);
+			getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), m_canCrush);
 		}
 	}
 }
@@ -256,14 +256,35 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		_eventDispatcher->pauseEventListenersForTarget(this);
 
 		//游戏步数减去1，并加分
-		auto gamescene = (GameScene*)this->getParent();
+		auto gamescene = getGameScene();
 		gamescene->subStep();
 		gamescene->addScore(m_SelectedChrs.size() * SCORE_PER_CHR);
 
-		for (auto &chr : m_SelectedChrs)
+		for (int i = 0; i < m_SelectedChrs.size(); i++)
 		{
-			//清除该汉字，然后添加一个新汉字到新汉字盒子
-			clearSelectedChr(chr);
+			auto chr = m_SelectedChrs.at(i);
+			int x = chr->getX();
+			int y = chr->getY();
+
+			//汉字元素消除
+			chr->bomb();
+
+			//然后添加一个新汉字到新汉字盒子
+			//根据消除的次数，增加特殊元素
+			int special_type = 0;
+			switch(i)
+			{
+			case 3:
+				special_type = 1;
+				break;
+			case 4:
+				special_type = 2;
+				break;
+			case 5:
+				special_type = 3;
+				break;
+			}
+			addNewChrs(x, special_type);
 		}
 
 		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
@@ -283,7 +304,7 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 	//清空临时已选汉字集合
 	m_SelectedChrs.clear();
 	//更改主界面的letter label的显示
-	((GameScene*)this->getParent())->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+	getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
 
 	//开启倒计时捕捉，即开启提示功能
 	resetCountdown();
@@ -299,7 +320,7 @@ void ChrsGrid::onChrsDropping(float dt)
 		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
 
 		//判断是否步数终结，如果是，那么游戏结束
-		auto step = ((GameScene*)this->getParent())->getStep();
+		auto step = getGameScene()->getStep();
 		if (step == 0)
 		{
 			//游戏结束
@@ -327,18 +348,13 @@ void ChrsGrid::onChrsDropping(float dt)
 	}
 }
 
-void ChrsGrid::clearSelectedChr(Chr* chr)
+void ChrsGrid::addNewChrs(int x, int special_type)
 {
-	//将汉字盒子中的对应元素置为空
-	m_ChrsBox[chr->getX()][chr->getY()] = nullptr;
-
 	//生成一个新的汉字元素，将其加入临时新汉字盒子
-	//与欲消除的汉字同列，但位于阵列最上面一行的上一行
-	auto new_chr = createAChr(chr->getX(), m_row);
-	m_NewChrs.pushBack(new_chr);
+	auto new_chr = createAChr(x, m_row);
+	//new_chr->setSpecial(special_type);
 
-	//将汉字元素从父节点移除
-	chr->removeFromParent();
+	m_NewChrs.pushBack(new_chr);
 }
 
 void ChrsGrid::dropChrs()

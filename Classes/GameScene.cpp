@@ -49,8 +49,16 @@ bool GameScene::init(ValueMap level_info)
 	int col = 7;
 	int row = 8;
 	auto chrsgrid = ChrsGrid::create(level_info, col, row);
-	addChild(chrsgrid);
-	chrsgrid->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
+	//设定一个裁剪节点
+	auto clipper = ClippingNode::create();
+	//以阵列的布局背景做裁剪模板，此模板不会被绘制，只是用来遮罩的
+	clipper->setStencil(chrsgrid->getChildByTag(1000));
+	//clipper->setInverted(true);
+	clipper->setContentSize(winSize);
+	clipper->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
+	//将chrsgrid加入裁剪节点，不在裁剪模板范围内的将不显示
+	clipper->addChild(chrsgrid);
+	addChild(clipper);
 
 	//根据关卡配置获得游戏关卡的限定步数
 	m_step = level_info.at("step").asInt();
