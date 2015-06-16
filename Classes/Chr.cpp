@@ -77,6 +77,64 @@ bool Chr::init(String* str, int x, int y)
 		addChild(m_arrow[i]);
 	}
 
+	//添加特殊标志并使其隐藏
+	for (int i = 0; i < 8; i++)
+	{
+		auto special_rl = Sprite::create("right_left.png");
+		auto special_bs = Sprite::create("bias.png");
+		special_rl->setScale(CHR_WITDH / (5 * special_rl->getContentSize().width));
+		special_bs->setScale(CHR_WITDH / (4 * special_bs->getContentSize().width));
+		special_rl->setVisible(false);
+		special_bs->setVisible(false);
+
+		int delta1 = 3;
+		int delta2 = 5;
+		switch(i)
+		{
+		case 0:
+			special_rl->setPosition(CHR_WITDH / 2, CHR_WITDH - delta1);
+			special_rl->setRotation(90);
+			break;
+		case 1:
+			special_rl->setPosition(CHR_WITDH / 2, delta1);
+			special_rl->setRotation(-90);
+			break;
+		case 2:
+			special_rl->setPosition(delta1, CHR_WITDH / 2);
+			break;
+		case 3:
+			special_rl->setPosition(CHR_WITDH - delta1, CHR_WITDH / 2);
+			special_rl->setRotation(180);
+			break;
+		case 4:
+			special_bs->setPosition(CHR_WITDH - delta2, CHR_WITDH - delta2);
+			special_bs->setRotation(90);
+			break;
+		case 5:
+			special_bs->setPosition(CHR_WITDH - delta2, delta2);
+			special_bs->setRotation(180);
+			break;
+		case 6:
+			special_bs->setPosition(delta2, CHR_WITDH - delta2);
+			break;
+		case 7:
+			special_bs->setPosition(delta2, delta2);
+			special_bs->setRotation(-90);
+			break;
+		}
+
+		if (i < 4)
+		{
+			m_special[i] = special_rl;
+		}
+		else
+		{
+			m_special[i] = special_bs;
+		}
+
+		addChild(m_special[i]);
+	}
+	 
 	//添加Label，内容就是字本身
 	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 8);
 	label->setTextColor(Color4B::BLACK);
@@ -121,22 +179,66 @@ void Chr::showArrow(Chr* next_chr)
 	}
 }
 
+string Chr::getNormalBG()
+{
+	if (m_special_type != 0)
+	{
+		return string("char_bg_special.png");
+	}
+	else
+	{
+		return string("char_bg_normal.png");
+	}
+}
+
 void Chr::bomb()
 {
-	auto chrsBox = ((ChrsGrid*)this->getParent())->getChrsBox();
-
-	//将汉字盒子中的对应元素置为空
-	(*chrsBox)[m_x][m_y] = nullptr;
-
 	this->removeFromParent();
 }
 
-void Chr::setSpecial(int type)
+void Chr::setSpecial(int special_type)
 {
-	if (type == 0) return; //正常类型无需设定
+	if (special_type == 0) return; //正常类型无需设定
 
-	m_special_type = type;
+	m_special_type = special_type;
 	m_bg->setTexture("char_bg_special.png");
 
-	//添加特效...
+	//添加特效标记
+	switch (m_special_type)
+	{
+	case SPECIAL_TYPE_HOR :
+		m_special[2]->setVisible(true);
+		m_special[3]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_VAR :
+		m_special[0]->setVisible(true);
+		m_special[1]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_RBS :
+		m_special[4]->setVisible(true);
+		m_special[7]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_LBS :
+		m_special[5]->setVisible(true);
+		m_special[6]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_HVR :
+		m_special[0]->setVisible(true);
+		m_special[1]->setVisible(true);
+		m_special[2]->setVisible(true);
+		m_special[3]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_RLB :
+		m_special[4]->setVisible(true);
+		m_special[7]->setVisible(true);
+		m_special[5]->setVisible(true);
+		m_special[6]->setVisible(true);
+		break;
+	case SPECIAL_TYPE_ALL :
+		for (int i = 0; i < 8; i++)
+		{
+			m_special[i]->setVisible(true);
+		}
+		break;
+	}
 }

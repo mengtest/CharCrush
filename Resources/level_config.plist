@@ -31,10 +31,7 @@
 			<key>letter</key>
 			<array>
 				<string>曹操</string>
-				<string>刘备</string>
-				<string>李白</string>
-				<string>杜甫</string>
-				<string>武松</string>
+				<string>司马相如</string>
 				<string>潘金莲</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->

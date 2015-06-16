@@ -197,7 +197,7 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 			if (secondlast_chr == chr)
 			{
 				//将最后一个元素删除出去
-				m_SelectedChrs.back()->getBg()->setTexture("char_bg_normal.png");
+				m_SelectedChrs.back()->getBg()->setTexture(m_SelectedChrs.back()->getNormalBG());
 				m_SelectedChrs.popBack();
 
 				//然后将现有最后一个的汉字的箭头隐藏
@@ -247,6 +247,62 @@ bool ChrsGrid::canCrush()
 	return false;
 }
 
+int ChrsGrid::getSpecial(int i)
+{
+	int special_type = 0;
+	/*
+	if (i == 3)
+	{
+		special_type = SPECIAL_TYPE_BON;
+	}
+	*/
+	auto pre_chr = m_SelectedChrs.at(i-1);
+	int dx = m_SelectedChrs.at(i)->getX() - pre_chr->getX();
+	int dy = m_SelectedChrs.at(i)->getY() - pre_chr->getY();
+	int d = abs(dx) + abs(dy);
+
+	if (i == 2)
+	{
+		//斜位置d=2，横竖位置d=1
+		if (d == 2)
+		{
+			//如果同符号，那么右倾斜类型，否则左倾斜
+			if (dx * dy > 0) 
+				special_type = SPECIAL_TYPE_RBS;
+			else
+				special_type = SPECIAL_TYPE_LBS;
+		}
+		else
+		{
+			//dx不为0，则为横类型，否则为竖类型
+			if (abs(dx) == 1)
+				special_type = SPECIAL_TYPE_HOR;
+			else
+				special_type = SPECIAL_TYPE_VAR;
+		}
+	}
+
+	if (i == 3)
+	{
+		//斜位置d=2，横竖位置d=1
+		if (d == 2)
+		{
+			special_type = SPECIAL_TYPE_RLB;//左右倾斜
+		}
+		else
+		{
+			special_type = SPECIAL_TYPE_HVR;//横竖			
+		}
+	}
+
+	if (i == 4)
+	{
+		special_type = SPECIAL_TYPE_ALL;//全方位
+	}
+
+	return special_type;
+}
+
 void ChrsGrid::onTouchEnded(Touch*, Event*)
 {
 	//如果能消除，那么清除已选文字
@@ -266,25 +322,23 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 			int x = chr->getX();
 			int y = chr->getY();
 
+			int special_type = 0;
+			if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
+			{
+				special_type = getSpecial(i);
+			}
+
+			if (special_type == 0)
+			{
+				m_ChrsBox[x][y] = nullptr;
+			}
+
 			//汉字元素消除
 			chr->bomb();
 
 			//然后添加一个新汉字到新汉字盒子
 			//根据消除的次数，增加特殊元素
-			int special_type = 0;
-			switch(i)
-			{
-			case 3:
-				special_type = 1;
-				break;
-			case 4:
-				special_type = 2;
-				break;
-			case 5:
-				special_type = 3;
-				break;
-			}
-			addNewChrs(x, special_type);
+			addNewChrs(x, y, special_type);			
 		}
 
 		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
@@ -296,7 +350,7 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		//如果不能，改变回背景颜色，其箭头也隐藏
 		for (auto &chr : m_SelectedChrs)
 		{
-			chr->getBg()->setTexture("char_bg_normal.png");
+			chr->getBg()->setTexture(chr->getNormalBG().c_str());
 			chr->hideArrow();
 		}
 	}
@@ -348,13 +402,23 @@ void ChrsGrid::onChrsDropping(float dt)
 	}
 }
 
-void ChrsGrid::addNewChrs(int x, int special_type)
+void ChrsGrid::addNewChrs(int x, int y, int special_type)
 {
 	//生成一个新的汉字元素，将其加入临时新汉字盒子
-	auto new_chr = createAChr(x, m_row);
-	//new_chr->setSpecial(special_type);
+	Chr* new_chr = nullptr;
+	if (special_type == 0)
+	{
+		new_chr = createAChr(x, m_row);
 
-	m_NewChrs.pushBack(new_chr);
+		//注意只有普通情况下，才加入新汉字盒子
+		m_NewChrs.pushBack(new_chr);
+	}
+	else
+	{
+		new_chr = createAChr(x, y);
+		new_chr->setSpecial(special_type);
+		m_ChrsBox[x][y] = new_chr;
+	}
 }
 
 void ChrsGrid::dropChrs()
@@ -368,7 +432,7 @@ void ChrsGrid::dropChrs()
 		{
 			auto chr = m_ChrsBox[x][y];
 
-			if (!chr)
+			if (!chr)//如果需要更新
 			{
 				space++;
 				continue;
@@ -400,7 +464,6 @@ void ChrsGrid::dropChrs()
 			if (chr->getX() == x)
 			{
 				chr->setY(m_row - n);
-
 				auto delay = DelayTime::create(0.2);
 				//后下落的速度设置慢一些
 				auto move = MoveBy::create(0.2*delta++, Vec2(0, -n--*GRID_WIDTH));
@@ -643,7 +706,7 @@ void ChrsGrid::resetAnswerChrs()
 	{
 		chr->stopAllActions();
 		chr->hideArrow();
-		chr->getBg()->setTexture("char_bg_normal.png");	
+		chr->getBg()->setTexture(chr->getNormalBG().c_str());	
 	}
 }
 
@@ -677,7 +740,7 @@ void ChrsGrid::showAnswer()
 		auto delay2 = DelayTime::create((m_AnswerChrs.size() - i) / 2.0);
 		auto call2 = CallFunc::create([chr, i, pAnswerChrs](){
 			//1.改变颜色为正常 2.隐藏箭头
-			chr->getBg()->setTexture("char_bg_normal.png");
+			chr->getBg()->setTexture(chr->getNormalBG().c_str());
 			chr->hideArrow();
 		});
 		auto delay3 = DelayTime::create(0.5);
