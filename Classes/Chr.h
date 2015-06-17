@@ -14,10 +14,12 @@ using namespace std;
 #define SPECIAL_TYPE_VAR 2//竖
 #define SPECIAL_TYPE_RBS 3//右倾斜
 #define SPECIAL_TYPE_LBS 4//左倾斜
-#define SPECIAL_TYPE_HVR 5//横竖
+#define SPECIAL_TYPE_HVR 5//横竖十字
 #define SPECIAL_TYPE_RLB 6//左右倾斜
 #define SPECIAL_TYPE_ALL 7//全方位
 #define SPECIAL_TYPE_BON 8//高分值奖励
+
+class ChrsGrid;
 
 //汉字类，由它组成词组
 class Chr : public Node
@@ -44,6 +46,12 @@ public:
 	void hideArrow(); //隐藏所有的箭头
 
 	void bomb(); //汉字元素消除
+
+	void bombHOR(ChrsGrid* chrsgrid);//横消
+	void bombVAR(ChrsGrid* chrsgrid);//竖消
+	void bombRBS(ChrsGrid* chrsgrid);//右斜消
+	void bombLBS(ChrsGrid* chrsgrid);//左斜消
+
 	void setSpecial(int special_type); //根据type设定其特殊类型
 
 private:

@@ -134,7 +134,7 @@ bool Chr::init(String* str, int x, int y)
 
 		addChild(m_special[i]);
 	}
-	 
+
 	//添加Label，内容就是字本身
 	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 8);
 	label->setTextColor(Color4B::BLACK);
@@ -191,36 +191,209 @@ string Chr::getNormalBG()
 	}
 }
 
+//横消
+void Chr::bombHOR(ChrsGrid* chrsgrid)
+{
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	for (int i = 0; i < chrsgrid->getCol(); i++)
+	{
+		//横方向上有可能出现已经消除了的，则跳过
+		if ((*chrsbox)[i][m_y] == nullptr)
+		{
+			continue;
+		}
+
+		(*chrsbox)[i][m_y]->removeFromParent();
+		(*chrsbox)[i][m_y] = nullptr;
+	}
+}
+
+//竖消
+void Chr::bombVAR(ChrsGrid* chrsgrid)
+{
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	for (int i = 0; i < chrsgrid->getRow(); i++)
+	{
+		if ((*chrsbox)[m_x][i] == nullptr)
+		{
+			continue;
+		}
+
+		(*chrsbox)[m_x][i]->removeFromParent();
+		(*chrsbox)[m_x][i] = nullptr;
+	}
+}
+
+//右斜消
+void Chr::bombRBS(ChrsGrid* chrsgrid)
+{
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	//往下消除，因i为0，包含消除自身
+	int i = 0;
+	while (1)
+	{
+		int x = m_x - i;
+		int y = m_y - i;
+		if (x < 0 || y < 0)
+		{
+			break;
+		}
+
+		if ((*chrsbox)[x][y] == nullptr)
+		{
+			i++;
+			continue;
+		}
+
+		(*chrsbox)[x][y]->removeFromParent();
+		(*chrsbox)[x][y] = nullptr;
+
+		i++;
+	}
+	//往上消除
+	i = 1;
+	while (1)
+	{
+		int x = m_x + i;
+		int y = m_y + i;
+		if (x == chrsgrid->getCol() || y == chrsgrid->getRow())
+		{
+			break;
+		}
+
+		if ((*chrsbox)[x][y] == nullptr)
+		{
+			i++;
+			continue;
+		}
+
+		(*chrsbox)[x][y]->removeFromParent();
+		(*chrsbox)[x][y] = nullptr;
+
+		i++;
+	}
+}
+
+//左斜消
+void Chr::bombLBS(ChrsGrid* chrsgrid)
+{
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	//往下消除，因i为0，包含消除自身
+	int i = 0;
+	while (1)
+	{
+		int x = m_x + i;
+		int y = m_y - i;
+		if (x == chrsgrid->getCol() || y < 0)
+		{
+			break;
+		}
+
+		if ((*chrsbox)[x][y] == nullptr)
+		{
+			i++;
+			continue;
+		}
+
+		(*chrsbox)[x][y]->removeFromParent();
+		(*chrsbox)[x][y] = nullptr;
+
+		i++;
+	}
+	//往上消除
+	i = 1;
+	while (1)
+	{
+		int x = m_x - i;
+		int y = m_y + i;
+		if (x < 0 || y == chrsgrid->getRow())
+		{
+			break;
+		}
+
+		if ((*chrsbox)[x][y] == nullptr)
+		{
+			i++;
+			continue;
+		}
+
+		(*chrsbox)[x][y]->removeFromParent();
+		(*chrsbox)[x][y] = nullptr;
+
+		i++;
+	}
+}
+
+//根据汉字元素之类型，对其或周边元素进行消除
 void Chr::bomb()
 {
 	auto chrsgrid = (ChrsGrid*)(this->getParent());
-	auto chrsbox = chrsgrid->getChrsBox();
 
-	if ((*chrsbox)[m_x][m_y] == nullptr)
+	//如果父节点为空，说明该元素已经被消除了，则无需再消除
+	if (chrsgrid == nullptr)
 	{
 		return;
 	}
 
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	//简单的单消
 	if (m_special_type == 0)
 	{
 		(*chrsbox)[m_x][m_y] = nullptr;
 		this->removeFromParent();
 	}
 
+	//横消
 	if (m_special_type == SPECIAL_TYPE_HOR)
 	{
-		for (int i = 0; i < chrsgrid->getCol(); i++)
-		{
-			if ((*chrsbox)[i][m_y] == nullptr)
-			{
-				continue;
-			}
-
-			(*chrsbox)[i][m_y]->removeFromParent();
-			(*chrsbox)[i][m_y] = nullptr;
-		}
+		bombHOR(chrsgrid);
 	}
-	
+
+	//竖消
+	if (m_special_type == SPECIAL_TYPE_VAR)
+	{
+		bombVAR(chrsgrid);
+	}
+
+	//右斜消
+	if (m_special_type == SPECIAL_TYPE_RBS)
+	{
+		bombRBS(chrsgrid);
+	}
+
+	//左斜消
+	if (m_special_type == SPECIAL_TYPE_LBS)
+	{
+		bombLBS(chrsgrid);
+	}
+
+	//横竖十字消
+	if (m_special_type == SPECIAL_TYPE_HVR)
+	{
+		bombHOR(chrsgrid);
+		bombVAR(chrsgrid);
+	}
+
+	//左右斜消
+	if (m_special_type == SPECIAL_TYPE_RLB)
+	{
+		bombRBS(chrsgrid);
+		bombLBS(chrsgrid);
+	}
+
+	//全方位消除
+	if (m_special_type == SPECIAL_TYPE_ALL)
+	{
+		bombHOR(chrsgrid);
+		bombVAR(chrsgrid);
+		bombRBS(chrsgrid);
+		bombLBS(chrsgrid);
+	}
 }
 
 void Chr::setSpecial(int special_type)

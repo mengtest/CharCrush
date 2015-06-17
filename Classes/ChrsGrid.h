@@ -39,7 +39,6 @@ private:
 	Chr* createAChr(int x, int y); //根据布局坐标创建一个汉字元素
 
 	bool canCrush(); //判断当前已选汉字能否消除
-	void addNewChrs(int x, int y, int special_type); //增加新汉字，x是横坐标
 	void dropChrs(); //汉字掉落
 	bool isDeadMap();  //判断当前阵列是否无法消除
 	bool findRoot(Chr*);//以chr为结点，将其添加到m_AnswerChrs，判断是否为字典树中之终结
@@ -66,6 +65,10 @@ private:
 	void showAnswer(); //系统演示消除方法
 	GameScene* getGameScene() { return (GameScene*)(this->getParent()->getParent()); }//得到包含该阵列的游戏场景
 	int getSpecial(int i); //根据i从m_selected中获得special类型
+
+	void goCrush(); //消除模块，将在停止触摸时启用
+	void crushLastChr(); //对已选汉字盒子内最后一个元素做特殊处理
+	void addNewChrs(); //增加新汉字元素模块，将在消除模块完成后启用
 
 public:
 	vector<vector<Chr*>>* getChrsBox() { return &m_ChrsBox; } //得到汉字阵列

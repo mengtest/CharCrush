@@ -261,7 +261,7 @@ int ChrsGrid::getSpecial(int i)
 	int dy = m_SelectedChrs.at(i)->getY() - pre_chr->getY();
 	int d = abs(dx) + abs(dy);
 
-	if (i == 1)
+	if (i == 2)
 	{
 		//斜位置d=2，横竖位置d=1
 		if (d == 2)
@@ -303,6 +303,112 @@ int ChrsGrid::getSpecial(int i)
 	return special_type;
 }
 
+void ChrsGrid::goCrush()
+{
+	//注意：最后一个不删除，等待特殊类型判断后处理之
+	for (int i = 0; i < m_SelectedChrs.size() - 1; i++)
+	{
+		auto chr = m_SelectedChrs.at(i);
+
+		//汉字元素消除
+		chr->bomb();
+
+		/*
+		Chr* new_chr = nullptr;
+		if (i < m_SelectedChrs.size() - 1)
+		{
+		if (chr->getSpecial() == 0)
+		{
+		new_chr = createAChr(chr->getX(), m_row);
+		m_NewChrs.pushBack(new_chr);
+		}
+
+		if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
+		{
+		for (int x = 0; x < m_col; x++)
+		{
+		//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
+		if (x == m_SelectedChrs.back()->getX())
+		{
+		continue;
+		}
+		new_chr = createAChr(x, m_row);
+		m_NewChrs.pushBack(new_chr);
+		}
+		}
+		}
+
+		if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
+		{
+		int special_type = getSpecial(i);
+		//如果是特殊类型，那么直接加入原位置，否则仍然加入新盒子等待掉落
+		if (special_type != 0)
+		{
+		auto new_chr = createAChr(chr->getX(), chr->getY());
+		new_chr->setSpecial(special_type);
+		m_ChrsBox[chr->getX()][chr->getY()] = new_chr;
+		}
+		else
+		{
+		if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
+		{
+		for (int x = 0; x < m_col; x++)
+		{
+		//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
+		if (x == m_SelectedChrs.back()->getX())
+		{
+		continue;
+		}
+		new_chr = createAChr(x, m_row);
+		m_NewChrs.pushBack(new_chr);
+		}
+		}
+		}
+		}
+		*/
+	}
+}
+
+void ChrsGrid::addNewChrs()
+{
+	//遍历汉字阵列，扫描空出来的格子，然后添加汉字至新宝石盒子，位于顶部
+	for (int x = 0; x < m_col; x++)
+	{
+		for (int y = 0; y < m_row; y++)
+		{
+			//如果该位置没有任何汉字元素，那么添加一个新汉字元素，位置在阵列顶部
+			if (m_ChrsBox[x][y] == nullptr)
+			{
+				auto chr = createAChr(x, m_row);
+
+				//加入新汉字盒子，等待掉落
+				m_NewChrs.pushBack(chr);
+			}
+		}
+	}
+}
+
+void ChrsGrid::crushLastChr()
+{
+	//得到消除后，应该生成的特殊类型
+	int special_type = getSpecial(m_SelectedChrs.size() - 1);
+
+	//如果生成的是普通类型，那么简单消除
+	auto last_chr = m_SelectedChrs.back();
+	if (special_type == 0)
+	{
+		last_chr->bomb();
+	}
+	else //如果生成了特殊类型，那么除了消除，还要增加一个新的特殊类型汉字元素在原位置
+	{
+		last_chr->bomb();
+
+		auto new_chr = createAChr(last_chr->getX(), last_chr->getY());
+		new_chr->setSpecial(special_type);
+		m_ChrsBox[last_chr->getX()][last_chr->getY()] = new_chr;
+	}
+}
+
 void ChrsGrid::onTouchEnded(Touch*, Event*)
 {
 	//如果能消除，那么清除已选文字
@@ -316,65 +422,14 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		gamescene->subStep();
 		gamescene->addScore(m_SelectedChrs.size() * SCORE_PER_CHR);
 
-		for (int i = 0; i < m_SelectedChrs.size(); i++)
-		{
-			auto chr = m_SelectedChrs.at(i);
+		//对已选汉字盒子内的元素进行消除，但不消除最后一个
+		goCrush();
 
-			//汉字元素消除
-			chr->bomb();
+		//对已选汉字盒子内最后一个汉字做特殊处理
+		crushLastChr();
 
-			Chr* new_chr = nullptr;
-			if (i < m_SelectedChrs.size() - 1)
-			{
-				if (chr->getSpecial() == 0)
-				{
-					new_chr = createAChr(chr->getX(), m_row);
-					m_NewChrs.pushBack(new_chr);
-				}
-
-				if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
-				{
-					for (int x = 0; x < m_col; x++)
-					{
-						//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
-						if (x == m_SelectedChrs.back()->getX())
-						{
-							continue;
-						}
-						new_chr = createAChr(x, m_row);
-						m_NewChrs.pushBack(new_chr);
-					}
-				}
-			}
-
-			if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
-			{
-				int special_type = getSpecial(i);
-				//如果是特殊类型，那么直接加入原位置，否则仍然加入新盒子等待掉落
-				if (special_type != 0)
-				{
-					auto new_chr = createAChr(chr->getX(), chr->getY());
-					new_chr->setSpecial(special_type);
-					m_ChrsBox[chr->getX()][chr->getY()] = new_chr;
-				}
-				else
-				{
-					if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
-					{
-						for (int x = 0; x < m_col; x++)
-						{
-							//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
-							if (x == m_SelectedChrs.back()->getX())
-							{
-								continue;
-							}
-							new_chr = createAChr(x, m_row);
-							m_NewChrs.pushBack(new_chr);
-						}
-					}
-				}
-			}
-		}
+		//根据阵列空余添加新汉字元素至新汉字盒子，位于顶部，等待掉落
+		addNewChrs();
 
 		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
 		dropChrs();
@@ -434,25 +489,6 @@ void ChrsGrid::onChrsDropping(float dt)
 		}
 
 		_eventDispatcher->resumeEventListenersForTarget(this);
-	}
-}
-
-void ChrsGrid::addNewChrs(int x, int y, int special_type)
-{
-	//生成一个新的汉字元素，将其加入临时新汉字盒子
-	Chr* new_chr = nullptr;
-	if (special_type == 0)
-	{
-		new_chr = createAChr(x, m_row);
-
-		//注意只有普通情况下，才加入新汉字盒子
-		m_NewChrs.pushBack(new_chr);
-	}
-	else
-	{
-		new_chr = createAChr(x, y);
-		new_chr->setSpecial(special_type);
-		m_ChrsBox[x][y] = new_chr;
 	}
 }
 
