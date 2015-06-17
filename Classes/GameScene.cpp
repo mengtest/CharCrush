@@ -52,8 +52,8 @@ bool GameScene::init(ValueMap level_info)
 	//设定一个裁剪节点
 	auto clipper = ClippingNode::create();
 	//以阵列的布局背景做裁剪模板，此模板不会被绘制，只是用来遮罩的
-	clipper->setStencil(chrsgrid->getChildByTag(1000));
-	//clipper->setStencil(Sprite::create("bg.png"));
+	//clipper->setStencil(chrsgrid->getChildByTag(1000));
+	clipper->setStencil(Sprite::create("bg.png"));
 	//clipper->setInverted(true);
 	clipper->setContentSize(winSize);
 	clipper->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);

@@ -193,7 +193,34 @@ string Chr::getNormalBG()
 
 void Chr::bomb()
 {
-	this->removeFromParent();
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
+	auto chrsbox = chrsgrid->getChrsBox();
+
+	if ((*chrsbox)[m_x][m_y] == nullptr)
+	{
+		return;
+	}
+
+	if (m_special_type == 0)
+	{
+		(*chrsbox)[m_x][m_y] = nullptr;
+		this->removeFromParent();
+	}
+
+	if (m_special_type == SPECIAL_TYPE_HOR)
+	{
+		for (int i = 0; i < chrsgrid->getCol(); i++)
+		{
+			if ((*chrsbox)[i][m_y] == nullptr)
+			{
+				continue;
+			}
+
+			(*chrsbox)[i][m_y]->removeFromParent();
+			(*chrsbox)[i][m_y] = nullptr;
+		}
+	}
+	
 }
 
 void Chr::setSpecial(int special_type)

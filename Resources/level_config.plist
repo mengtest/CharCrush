@@ -7,9 +7,6 @@
 			<key>letter</key>
 			<array>
 				<string>篮球</string>
-				<string>足球</string>
-				<string>乒乓球</string>
-				<string>马拉松</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->
 			<key>countdown</key>

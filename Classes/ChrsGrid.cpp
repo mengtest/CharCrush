@@ -253,7 +253,7 @@ int ChrsGrid::getSpecial(int i)
 	/*
 	if (i == 3)
 	{
-		special_type = SPECIAL_TYPE_BON;
+	special_type = SPECIAL_TYPE_BON;
 	}
 	*/
 	auto pre_chr = m_SelectedChrs.at(i-1);
@@ -261,7 +261,7 @@ int ChrsGrid::getSpecial(int i)
 	int dy = m_SelectedChrs.at(i)->getY() - pre_chr->getY();
 	int d = abs(dx) + abs(dy);
 
-	if (i == 2)
+	if (i == 1)
 	{
 		//斜位置d=2，横竖位置d=1
 		if (d == 2)
@@ -319,26 +319,61 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		for (int i = 0; i < m_SelectedChrs.size(); i++)
 		{
 			auto chr = m_SelectedChrs.at(i);
-			int x = chr->getX();
-			int y = chr->getY();
-
-			int special_type = 0;
-			if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
-			{
-				special_type = getSpecial(i);
-			}
-
-			if (special_type == 0)
-			{
-				m_ChrsBox[x][y] = nullptr;
-			}
 
 			//汉字元素消除
 			chr->bomb();
 
-			//然后添加一个新汉字到新汉字盒子
-			//根据消除的次数，增加特殊元素
-			addNewChrs(x, y, special_type);			
+			Chr* new_chr = nullptr;
+			if (i < m_SelectedChrs.size() - 1)
+			{
+				if (chr->getSpecial() == 0)
+				{
+					new_chr = createAChr(chr->getX(), m_row);
+					m_NewChrs.pushBack(new_chr);
+				}
+
+				if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
+				{
+					for (int x = 0; x < m_col; x++)
+					{
+						//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
+						if (x == m_SelectedChrs.back()->getX())
+						{
+							continue;
+						}
+						new_chr = createAChr(x, m_row);
+						m_NewChrs.pushBack(new_chr);
+					}
+				}
+			}
+
+			if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
+			{
+				int special_type = getSpecial(i);
+				//如果是特殊类型，那么直接加入原位置，否则仍然加入新盒子等待掉落
+				if (special_type != 0)
+				{
+					auto new_chr = createAChr(chr->getX(), chr->getY());
+					new_chr->setSpecial(special_type);
+					m_ChrsBox[chr->getX()][chr->getY()] = new_chr;
+				}
+				else
+				{
+					if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
+					{
+						for (int x = 0; x < m_col; x++)
+						{
+							//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
+							if (x == m_SelectedChrs.back()->getX())
+							{
+								continue;
+							}
+							new_chr = createAChr(x, m_row);
+							m_NewChrs.pushBack(new_chr);
+						}
+					}
+				}
+			}
 		}
 
 		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束

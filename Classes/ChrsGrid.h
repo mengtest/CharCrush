@@ -69,6 +69,8 @@ private:
 
 public:
 	vector<vector<Chr*>>* getChrsBox() { return &m_ChrsBox; } //得到汉字阵列
+	int getCol() { return m_col; }
+	int getRow() { return m_row; }
 
 private:
 	Vector<String*> m_Chrs;//汉字集合
