@@ -21,63 +21,37 @@ bool Chr::init(String* str, int x, int y)
 {
 	Node::init();
 
-	//初始化为正常类型
-	m_special_type = 0;
+	//初始化坐标位置
+	this->m_x = x;
+	this->m_y = y;
 
-	m_chr = *str;
-	m_bg = Sprite::create("char_bg_normal.png");
-	//调整背景纹理大小，待图片合适后可不调整
-	m_bg->setScale(CHR_WITDH / m_bg->getContentSize().width);
-	m_bg->setAnchorPoint(Vec2(0, 0));
+	m_special_type = 0;	//初始化为正常类型
+
+	m_chr = *str;		//初始化汉字内容
+	m_bg = Sprite::create("char_bg_normal.png"); //初始化汉字背景
 	addChild(m_bg);
 
-	//添加箭头背景，并使其隐藏
-	for (int i = 0; i < 8; i++)
-	{
-		auto arrow = Sprite::create("arrow.png");
-		arrow->setScale(CHR_WITDH / (3 * arrow->getContentSize().width));
-		arrow->setVisible(false);
+	//调整背景大小，待图片合适后可不调整
+	m_bg->setScale(CHR_WITDH / m_bg->getContentSize().width);
+	m_bg->setAnchorPoint(Vec2(0, 0));
 
-		int delta = 10;
-		switch(i)
-		{
-		case 0:
-			arrow->setPosition(CHR_WITDH / 2, CHR_WITDH + delta);
-			arrow->setRotation(-90);
-			break;
-		case 1:
-			arrow->setPosition(CHR_WITDH / 2, -delta);
-			arrow->setRotation(90);
-			break;
-		case 2:
-			arrow->setPosition(-delta, CHR_WITDH / 2);
-			arrow->setRotation(180);
-			break;
-		case 3:
-			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH / 2);
-			break;
-		case 4:
-			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH + delta);
-			arrow->setRotation(-45);
-			break;
-		case 5:
-			arrow->setPosition(CHR_WITDH + delta, -delta);
-			arrow->setRotation(45);
-			break;
-		case 6:
-			arrow->setPosition(-delta, CHR_WITDH + delta);
-			arrow->setRotation(-135);
-			break;
-		case 7:
-			arrow->setPosition(-delta, -delta);
-			arrow->setRotation(135);
-			break;
-		}
-		m_arrow[i] = arrow;
-		addChild(m_arrow[i]);
-	}
+	initArrow();	//初始化箭头
 
-	//添加特殊标志并使其隐藏
+	initSpecial();	//初始化特殊消除标志
+
+	//添加汉字内容
+	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 8);
+	label->setTextColor(Color4B::BLACK);
+	label->setAnchorPoint(Vec2(0, 0));
+	label->setPosition(4, 2);
+	addChild(label);
+
+	return true;
+}
+
+//初始化特殊消除标志
+void Chr::initSpecial()
+{
 	for (int i = 0; i < 8; i++)
 	{
 		auto special_rl = Sprite::create("right_left.png");
@@ -134,19 +108,55 @@ bool Chr::init(String* str, int x, int y)
 
 		addChild(m_special[i]);
 	}
+}
 
-	//添加Label，内容就是字本身
-	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 8);
-	label->setTextColor(Color4B::BLACK);
-	label->setAnchorPoint(Vec2(0, 0));
-	label->setPosition(4, 2);
-	addChild(label);
+//初始化箭头背景，并使其隐藏
+void Chr::initArrow()
+{
+	for (int i = 0; i < 8; i++)
+	{
+		auto arrow = Sprite::create("arrow.png");
+		arrow->setScale(CHR_WITDH / (3 * arrow->getContentSize().width));
+		arrow->setVisible(false);
 
-	//初始化坐标位置
-	this->m_x = x;
-	this->m_y = y;
-
-	return true;
+		int delta = 10;
+		switch(i)
+		{
+		case 0:
+			arrow->setPosition(CHR_WITDH / 2, CHR_WITDH + delta);
+			arrow->setRotation(-90);
+			break;
+		case 1:
+			arrow->setPosition(CHR_WITDH / 2, -delta);
+			arrow->setRotation(90);
+			break;
+		case 2:
+			arrow->setPosition(-delta, CHR_WITDH / 2);
+			arrow->setRotation(180);
+			break;
+		case 3:
+			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH / 2);
+			break;
+		case 4:
+			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH + delta);
+			arrow->setRotation(-45);
+			break;
+		case 5:
+			arrow->setPosition(CHR_WITDH + delta, -delta);
+			arrow->setRotation(45);
+			break;
+		case 6:
+			arrow->setPosition(-delta, CHR_WITDH + delta);
+			arrow->setRotation(-135);
+			break;
+		case 7:
+			arrow->setPosition(-delta, -delta);
+			arrow->setRotation(135);
+			break;
+		}
+		m_arrow[i] = arrow;
+		addChild(m_arrow[i]);
+	}
 }
 
 void Chr::hideArrow()

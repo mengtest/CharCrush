@@ -4,6 +4,7 @@
 	<array>
 		<!-- 第一个关卡信息-->
 		<dict>
+			<!-- 关卡包含的词组-->
 			<key>letter</key>
 			<array>
 				<string>匹诺曹</string>

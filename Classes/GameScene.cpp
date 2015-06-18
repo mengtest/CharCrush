@@ -32,43 +32,40 @@ bool GameScene::init(ValueMap level_info)
 
 	auto winSize = Director::getInstance()->getWinSize();
 
-	//游戏背景
+	//添加游戏背景
 	auto bg = Sprite::create("bg.png");
-	bg->setAnchorPoint(Vec2(0 ,0));
-	bg->setPosition(0, 0);
+	bg->setPosition(winSize.width / 2, winSize.height / 2);
 	addChild(bg);
 
-	//顶部关卡bar
+	//添加顶部关卡bar
 	auto bar = Sprite::create("level_bar.png");
 	bar->setScale(0.5);
 	bar->setAnchorPoint(Vec2(0.5, 1));
 	bar->setPosition(winSize.width / 2, winSize.height);
 	addChild(bar);
 
-	//根据行列以及单词列表文件，创建一个汉字阵列
+	//根据行列以及本关卡配置信息，创建一个汉字阵列
 	int col = 7;
 	int row = 8;
 	auto chrsgrid = ChrsGrid::create(level_info, col, row);
-	//设定一个裁剪节点
+
+	//创建一个裁剪节点，裁剪大小是汉字阵列的大小，并将汉字阵列加入此裁剪结点
+	//这是为了让方块掉落时，只在位于汉字阵列内时才显示
 	auto clipper = ClippingNode::create();
-	//以阵列的布局背景做裁剪模板，此模板不会被绘制，只是用来遮罩的
 	clipper->setStencil(chrsgrid->getChildByTag(1000));
 	//clipper->setStencil(Sprite::create("bg.png"));
-	//clipper->setInverted(true);
-	clipper->setContentSize(winSize);
 	clipper->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
-	//将chrsgrid加入裁剪节点，不在裁剪模板范围内的将不显示
 	clipper->addChild(chrsgrid);
 	addChild(clipper);
 
 	//根据关卡配置获得游戏关卡的限定步数
 	m_step = level_info.at("step").asInt();
-	//添加步数Label，m_step为0无需添加
+
+	//添加步数Label
 	char buf[10] = {0};
 	sprintf(buf, "%d", m_step);
 	auto step_label = LabelAtlas::create(buf, "labelatlas.png", 17, 22, '0');
-	step_label->setPosition(Vec2(winSize.width / 4 - 30, 
-								 winSize.height - 35));
+	step_label->setPosition(Vec2(winSize.width / 4 - 30, winSize.height - 35));
 	step_label->setTag(100);
 	step_label->setAnchorPoint(Vec2(0.5, 0.5));
 	addChild(step_label);
@@ -82,8 +79,7 @@ bool GameScene::init(ValueMap level_info)
 
 	//添加scoreadd label
 	auto scoreadd_label = LabelAtlas::create("0", "labelatlas.png", 17, 22, '0');
-	scoreadd_label->setPosition(Vec2(winSize.width / 4 * 3 + 35, 
-								 winSize.height - 25));
+	scoreadd_label->setPosition(Vec2(winSize.width / 4 * 3 + 35, winSize.height - 25));
 	scoreadd_label->setTag(102);
 	scoreadd_label->setAnchorPoint(Vec2(0.5, 0.5));
 	addChild(scoreadd_label);
@@ -91,8 +87,7 @@ bool GameScene::init(ValueMap level_info)
 	//添加当前分数Label
 	m_score = 0;
 	auto score_label = LabelAtlas::create("0", "labelatlas.png", 17, 22, '0');
-	score_label->setPosition(Vec2(winSize.width / 2, 
-								 winSize.height - 100));
+	score_label->setPosition(Vec2(winSize.width / 2, winSize.height - 100));
 	score_label->setTag(103);
 	score_label->setScale(1.5);
 	score_label->setAnchorPoint(Vec2(0.5, 0.5));
@@ -131,17 +126,15 @@ bool GameScene::init(ValueMap level_info)
 	return true;
 }
 
-void GameScene::onBackCallBack(Ref* pSender)
-{
-	Director::getInstance()->popScene();
-}
-
+//加分并显示
 void GameScene::addScore(int score)
 {
+	//当前关卡分数增加
 	m_score += score;
 	char buf[10] = {0};
 	sprintf(buf, "%d", m_score);
 
+	//同步显示当前关卡分数
 	auto score_label = (LabelAtlas*)(this->getChildByTag(103));
 	score_label->setString(buf);
 
@@ -151,17 +144,20 @@ void GameScene::addScore(int score)
 	if (m_score >= m_score_start3) ((Sprite*)this->getChildByTag(202))->setVisible(true);
 }
 
-//步数减一
+//减去一步，并显示
 void GameScene::subStep()
 {
+	//当前步数减一
 	m_step--;
 	char buf[10] = {0};
 	sprintf(buf, "%d", m_step);
 
+	//同步显示当前步数限制
 	auto step_label = (LabelAtlas*)(this->getChildByTag(100));
 	step_label->setString(buf);
 }
 
+//更改letter Label的内容，包括加分选项，第二个参数表示是否能消除，即是否能加分
 void GameScene::setLetterLabel(string letter, bool isCorrect)
 {
 	//不显示超过7个的字符。也就是说，词的长度不要超过7
@@ -181,6 +177,7 @@ void GameScene::setLetterLabel(string letter, bool isCorrect)
 		scoreadd_label->setString("0");
 	}
 
+	//同步显示当前已选单词
 	auto letter_label = (Label*)(this->getChildByTag(101));
 	letter_label->setString(letter.c_str());
 }

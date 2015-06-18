@@ -35,10 +35,13 @@ bool AppDelegate::applicationDidFinishLaunching() {
     auto director = Director::getInstance();
     auto glview = director->getOpenGLView();
     if(!glview) {
-		glview = GLViewImpl::createWithRect("My Game", Rect(0, 0, 360, 640));
-        director->setOpenGLView(glview);
+		//设置windows下的游戏分辨率
+		glview = GLViewImpl::createWithRect("文字消除", Rect(0, 0, 360, 640));
+        
+		director->setOpenGLView(glview);
     }
 
+	//游戏分辨率为540*960，适用于1080P的机型
 	glview->setDesignResolutionSize(540, 960, ResolutionPolicy::SHOW_ALL);
 
     // turn on display FPS

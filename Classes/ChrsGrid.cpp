@@ -312,60 +312,6 @@ void ChrsGrid::goCrush()
 
 		//汉字元素消除
 		chr->bomb();
-
-		/*
-		Chr* new_chr = nullptr;
-		if (i < m_SelectedChrs.size() - 1)
-		{
-		if (chr->getSpecial() == 0)
-		{
-		new_chr = createAChr(chr->getX(), m_row);
-		m_NewChrs.pushBack(new_chr);
-		}
-
-		if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
-		{
-		for (int x = 0; x < m_col; x++)
-		{
-		//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
-		if (x == m_SelectedChrs.back()->getX())
-		{
-		continue;
-		}
-		new_chr = createAChr(x, m_row);
-		m_NewChrs.pushBack(new_chr);
-		}
-		}
-		}
-
-		if (i == m_SelectedChrs.size() - 1)//根据最后一个i的大小，确定汉字特殊类型
-		{
-		int special_type = getSpecial(i);
-		//如果是特殊类型，那么直接加入原位置，否则仍然加入新盒子等待掉落
-		if (special_type != 0)
-		{
-		auto new_chr = createAChr(chr->getX(), chr->getY());
-		new_chr->setSpecial(special_type);
-		m_ChrsBox[chr->getX()][chr->getY()] = new_chr;
-		}
-		else
-		{
-		if (chr->getSpecial() == SPECIAL_TYPE_HOR)//此时已经被消除了一排
-		{
-		for (int x = 0; x < m_col; x++)
-		{
-		//选择的最后一个元素不做消除操作，等待后续其特殊类型判断
-		if (x == m_SelectedChrs.back()->getX())
-		{
-		continue;
-		}
-		new_chr = createAChr(x, m_row);
-		m_NewChrs.pushBack(new_chr);
-		}
-		}
-		}
-		}
-		*/
 	}
 }
 
@@ -858,6 +804,37 @@ bool isChrExist(String* chr, struct ChrTrie *p, int *n)
 	}
 
 	return false;
+}
+
+//该结点退出时，需要释放字典树
+void ChrsGrid::onExit() 
+{ 
+	Node::onExit(); 
+	deleteTrie(&chr_root); 
+}
+
+void deleteTrie(struct ChrTrie* chr_root)
+{
+	//遍历字典树，递归释放结点空间
+	for (int i = 0; i < MAX; i++)
+	{
+		auto chr_node = chr_root->next[i];
+
+		if (chr_node == nullptr)
+		{
+			break;
+		}
+
+		if (*(chr_node->next) == nullptr)
+		{
+			free(chr_node);
+			return;
+		}
+		else
+		{
+			deleteTrie(chr_node);
+		}
+	}
 }
 
 void createTrie(struct ChrTrie* chr_root, ValueVector* letters)
