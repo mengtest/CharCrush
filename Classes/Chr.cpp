@@ -14,7 +14,7 @@ Chr* Chr::createWithString(String* str, int x, int y)
 	{
 		CC_SAFE_DELETE(chr);
 		return nullptr;
-	}	
+	}
 }
 
 bool Chr::init(String* str, int x, int y)

@@ -47,7 +47,35 @@ bool LevelScene::init()
 	addChild(menu);
 	menu->alignItemsVerticallyWithPadding(20);
 
+	setLevelOpened(menu);
+
 	return true;
+}
+
+void LevelScene::setLevelOpened(Menu *level_menu)
+{
+	//获取单例对象的同时，将判断文件是否存在，不存在则自动建立一个空XML文件
+	auto userdefault = UserDefault::getInstance();
+	
+	//log(userdefault->getXMLFilePath().c_str());
+	
+	//从UserDefault中获取最高开放的关卡，0代表第一关
+	int heighest_level = userdefault->getIntegerForKey("HeighestLevel");
+
+	auto levels_button = level_menu->getChildren();
+
+	for (auto &level_button : levels_button)
+	{
+		//小于等于最高关卡的才会开放，否则不予开放
+		if (level_button->getTag()-100 <= heighest_level)
+		{
+			((MenuItemFont*)level_button)->setEnabled(true);
+		}
+		else
+		{
+			((MenuItemFont*)level_button)->setEnabled(false);
+		}
+	}
 }
 
 //关卡选择后，回调函数，将根据选择的关卡进入到游戏界面
@@ -59,5 +87,5 @@ void LevelScene::onLevelChooseCallBack(Ref* level_item)
 
 	//进入游戏界面
 	auto scene = GameScene::createScene(level_info);
-	Director::getInstance()->pushScene(scene);
+	Director::getInstance()->replaceScene(scene);
 }

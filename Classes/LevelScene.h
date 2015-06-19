@@ -14,7 +14,9 @@ public:
 	bool init();
 
 private:
-	void onLevelChooseCallBack(Ref* pSender);//选择关卡后的回调函数
+	void onLevelChooseCallBack(Ref* pSender);	//选择关卡后的回调函数
+
+	void setLevelOpened(Menu *level_menu);		//设置关卡是否开放
 
 private:
 	ValueVector m_levels_info; //存放所有的关卡配置信息

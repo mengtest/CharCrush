@@ -320,12 +320,15 @@ void ChrsGrid::addNewChrs()
 	//遍历汉字阵列，扫描空出来的格子，然后添加汉字至新宝石盒子，位于顶部
 	for (int x = 0; x < m_col; x++)
 	{
+		//Y轴的偏移量，每次添加一个元素，应该在原来的上面一格添加
+		int delta = 0;
 		for (int y = 0; y < m_row; y++)
 		{
 			//如果该位置没有任何汉字元素，那么添加一个新汉字元素，位置在阵列顶部
 			if (m_ChrsBox[x][y] == nullptr)
 			{
-				auto chr = createAChr(x, m_row);
+				auto chr = createAChr(x, m_row + delta);
+				delta++;
 
 				//加入新汉字盒子，等待掉落
 				m_NewChrs.pushBack(chr);
@@ -409,15 +412,6 @@ void ChrsGrid::onChrsDropping(float dt)
 	{
 		unschedule(schedule_selector(ChrsGrid::onChrsDropping));
 
-		//判断是否步数终结，如果是，那么游戏结束
-		auto step = getGameScene()->getStep();
-		if (step == 0)
-		{
-			//游戏结束
-			log ("game over...");
-			return;
-		}
-
 		//判断是否是死图
 		while (isDeadMap())
 		{
@@ -434,7 +428,15 @@ void ChrsGrid::onChrsDropping(float dt)
 			}
 		}
 
-		_eventDispatcher->resumeEventListenersForTarget(this);
+		//如果游戏步数终止，那么游戏将结束
+		if (getGameScene()->getStep() == 0)
+		{
+			getGameScene()->gameover();
+		}
+		else
+		{
+			_eventDispatcher->resumeEventListenersForTarget(this);
+		}
 	}
 }
 
@@ -458,13 +460,14 @@ void ChrsGrid::dropChrs()
 			{
 				chr->setY(chr->getY() - space);//重置其坐标y值
 
+				auto delay = DelayTime::create(0.2);//这0.2秒留给消除特效
 				auto move = MoveBy::create(0.2, Vec2(0, -space*GRID_WIDTH));
 				auto call = CallFunc::create([pChrsBox, chr](){
 					//更新汉字盒子内的数据
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
 				});
 
-				chr->runAction(Sequence::create(move, call, nullptr));//准备下落的动作
+				chr->runAction(Sequence::create(delay, move, call, nullptr));//准备下落的动作
 			}
 		}
 
@@ -480,10 +483,9 @@ void ChrsGrid::dropChrs()
 		{
 			if (chr->getX() == x)
 			{
-				chr->setY(m_row - n);
+				chr->setY(chr->getY() - space);
 				auto delay = DelayTime::create(0.2);
-				//后下落的速度设置慢一些
-				auto move = MoveBy::create(0.2*delta++, Vec2(0, -n--*GRID_WIDTH));
+				auto move = MoveBy::create(0.4, Vec2(0, -space*GRID_WIDTH));
 				auto call = CallFunc::create([chr, pChrsBox, this](){
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
 					//从新汉字盒子中移除该汉字，也就是说，当新汉字盒子为空时，消除结束

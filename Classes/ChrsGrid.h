@@ -16,9 +16,9 @@ class GameScene;
 #define MAX 20 //一个节点最多有20个子节点，实质上代表单词首字数量
 struct ChrTrie
 {
-	ChrTrie* next[MAX];//此为该节点之子节点数组
-	char chr[4];//该节点的汉字内容
-	bool isEnding;//单词结尾标记，true为结尾
+	ChrTrie* next[MAX];	//此为该节点之子节点数组
+	char chr[4];		//该节点的汉字内容
+	bool isEnding;		//单词结尾标记，true为结尾
 };
 
 void createTrie(struct ChrTrie* chr_root, ValueVector* letters);//根据单词集合生成一颗字典树

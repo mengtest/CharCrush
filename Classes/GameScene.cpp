@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "ChrsGrid.h"
+#include "LevelScene.h"
 
 Scene* GameScene::createScene(ValueMap level_info)
 {
@@ -32,6 +33,9 @@ bool GameScene::init(ValueMap level_info)
 
 	auto winSize = Director::getInstance()->getWinSize();
 
+	//得到关卡序号
+	m_level_id = level_info.at("ID").asInt();
+
 	//添加游戏背景
 	auto bg = Sprite::create("bg.png");
 	bg->setPosition(winSize.width / 2, winSize.height / 2);
@@ -47,15 +51,15 @@ bool GameScene::init(ValueMap level_info)
 	//根据行列以及本关卡配置信息，创建一个汉字阵列
 	int col = 7;
 	int row = 8;
-	auto chrsgrid = ChrsGrid::create(level_info, col, row);
+	m_chrsgrid = ChrsGrid::create(level_info, col, row);
 
 	//创建一个裁剪节点，裁剪大小是汉字阵列的大小，并将汉字阵列加入此裁剪结点
 	//这是为了让方块掉落时，只在位于汉字阵列内时才显示
 	auto clipper = ClippingNode::create();
-	clipper->setStencil(chrsgrid->getChildByTag(1000));
+	clipper->setStencil(m_chrsgrid->getChildByTag(1000));
 	//clipper->setStencil(Sprite::create("bg.png"));
 	clipper->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
-	clipper->addChild(chrsgrid);
+	clipper->addChild(m_chrsgrid);
 	addChild(clipper);
 
 	//根据关卡配置获得游戏关卡的限定步数
@@ -126,6 +130,12 @@ bool GameScene::init(ValueMap level_info)
 	return true;
 }
 
+void GameScene::onBackCallBack(Ref* pSender)
+{
+	auto scene = LevelScene::createScene();
+	Director::getInstance()->replaceScene(scene);
+}
+
 //加分并显示
 void GameScene::addScore(int score)
 {
@@ -142,6 +152,35 @@ void GameScene::addScore(int score)
 	if (m_score >= m_score_start1) ((Sprite*)this->getChildByTag(200))->setVisible(true);
 	if (m_score >= m_score_start2) ((Sprite*)this->getChildByTag(201))->setVisible(true);
 	if (m_score >= m_score_start3) ((Sprite*)this->getChildByTag(202))->setVisible(true);
+}
+
+void GameScene::gameover()
+{
+	//游戏将终结
+	log ("game over...");
+
+	//暂停grid的schedule、触摸
+	m_chrsgrid->unscheduleAllSelectors();
+	_eventDispatcher->pauseEventListenersForTarget(m_chrsgrid);
+
+	//判断是否通关...
+	if (m_score >= m_score_start1)
+	{
+		log ("已通关");
+		//得到当前最高关卡
+		auto heighest_level = UserDefault::getInstance()->getIntegerForKey("HeighestLevel");
+		
+		//该关卡是否为最高关卡，是则最高关卡+1
+		if (m_level_id == heighest_level)
+		{
+			heighest_level++;
+			UserDefault::getInstance()->setIntegerForKey("HeighestLevel", heighest_level);
+		}
+	}
+
+	//通关提示...
+
+	//返回关卡选择界面...
 }
 
 //减去一步，并显示
@@ -163,7 +202,7 @@ void GameScene::setLetterLabel(string letter, bool isCorrect)
 	//不显示超过7个的字符。也就是说，词的长度不要超过7
 	int letter_len = letter.size() / 3;
 	if (letter_len > 7) return;
-	
+
 	//如果词条正确，显示加多少分
 	auto scoreadd_label = (LabelAtlas*)(this->getChildByTag(102));
 	if (isCorrect)

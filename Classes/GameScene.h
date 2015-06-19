@@ -8,6 +8,8 @@ using namespace std;
 
 #define SCORE_PER_CHR 30 //临时定义，一个字30分
 
+class ChrsGrid;
+
 //游戏主场景类
 class GameScene : public Layer
 {
@@ -20,21 +22,26 @@ public:
 public:
 	void subStep();				//减去一步，并显示
 	void addScore(int score);   //加分并显示
-	int getStep() { return m_step; } //返回当前的步数
+
+	int getStep() { return m_step; }
+	void gameover();
 
 	//更改letter Label的内容，包括加分选项，第二个参数表示是否能消除，即是否能加分
 	void setLetterLabel(string letter, bool isCorrect);
 
 private:
 	//测试用，调用此函数将返回关卡的选择界面
-	void onBackCallBack(Ref* pSender) { Director::getInstance()->popScene(); }
+	void onBackCallBack(Ref* pSender);
 
 private:
+	int m_level_id;		//关卡ID，即关卡的序号
 	int m_step;			//游戏关卡的限制步数
 	int m_score;		//游戏当前分数
 	int m_score_start1;	//通关所需的分数，分为1星，2星，3星
 	int m_score_start2;
 	int m_score_start3;
+
+	ChrsGrid *m_chrsgrid; //布局阵列
 };
 
 #endif
