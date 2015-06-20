@@ -58,7 +58,7 @@ bool GameScene::init(ValueMap level_info)
 	auto clipper = ClippingNode::create();
 	clipper->setStencil(m_chrsgrid->getChildByTag(1000));
 	//clipper->setStencil(Sprite::create("bg.png"));
-	clipper->setPosition(winSize.width / 2 + 10, winSize.height / 2 + 50);
+	clipper->setPosition(winSize.width / 2, winSize.height / 2 + 50);
 	clipper->addChild(m_chrsgrid);
 	addChild(clipper);
 
@@ -132,7 +132,9 @@ bool GameScene::init(ValueMap level_info)
 
 void GameScene::onBackCallBack(Ref* pSender)
 {
-	auto scene = LevelScene::createScene();
+	auto sharedFile = FileUtils::getInstance();
+	auto levels_info = sharedFile->getValueVectorFromFile("level_config.plist");
+	auto scene = LevelScene::createScene(levels_info);
 	Director::getInstance()->replaceScene(scene);
 }
 
@@ -169,7 +171,7 @@ void GameScene::gameover()
 		log ("已通关");
 		//得到当前最高关卡
 		auto heighest_level = UserDefault::getInstance()->getIntegerForKey("HeighestLevel");
-		
+
 		//该关卡是否为最高关卡，是则最高关卡+1
 		if (m_level_id == heighest_level)
 		{

@@ -21,35 +21,38 @@ bool Chr::init(String* str, int x, int y)
 {
 	Node::init();
 
-	//³õÊ¼»¯×ø±êÎ»ÖÃ
+	//åˆå§‹åŒ–åæ ‡ä½ç½®
 	this->m_x = x;
 	this->m_y = y;
 
-	m_special_type = 0;	//³õÊ¼»¯ÎªÕı³£ÀàĞÍ
+	m_special_type = 0;	//åˆå§‹åŒ–ä¸ºæ­£å¸¸ç±»å‹
 
-	m_chr = *str;		//³õÊ¼»¯ºº×ÖÄÚÈİ
-	m_bg = Sprite::create("char_bg_normal.png"); //³õÊ¼»¯ºº×Ö±³¾°
+	m_isCrushing = false;
+	m_isAction = false;
+
+	m_chr = *str;		//åˆå§‹åŒ–æ±‰å­—å†…å®¹
+	m_bg = Sprite::create("char_bg_normal.png"); //åˆå§‹åŒ–æ±‰å­—èƒŒæ™¯
 	addChild(m_bg);
 
-	//µ÷Õû±³¾°´óĞ¡£¬´ıÍ¼Æ¬ºÏÊÊºó¿É²»µ÷Õû
+	//è°ƒæ•´èƒŒæ™¯å¤§å°ï¼Œå¾…å›¾ç‰‡åˆé€‚åå¯ä¸è°ƒæ•´
 	m_bg->setScale(CHR_WITDH / m_bg->getContentSize().width);
-	m_bg->setAnchorPoint(Vec2(0, 0));
+	m_bg->setAnchorPoint(Vec2(0.5, 0.5));
+	
+	initArrow();	//åˆå§‹åŒ–ç®­å¤´
 
-	initArrow();	//³õÊ¼»¯¼ıÍ·
-
-	initSpecial();	//³õÊ¼»¯ÌØÊâÏû³ı±êÖ¾
-
-	//Ìí¼Óºº×ÖÄÚÈİ
-	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 8);
+	//æ·»åŠ æ±‰å­—å†…å®¹
+	auto label = Label::createWithSystemFont((*str).getCString(), "Arial", CHR_WITDH - 20);
 	label->setTextColor(Color4B::BLACK);
-	label->setAnchorPoint(Vec2(0, 0));
-	label->setPosition(4, 2);
+	label->setAnchorPoint(Vec2(0.5, 0.5));
+	label->setPosition(0, 0);
 	addChild(label);
+
+	initSpecial();	//åˆå§‹åŒ–ç‰¹æ®Šæ¶ˆé™¤æ ‡å¿—
 
 	return true;
 }
 
-//³õÊ¼»¯ÌØÊâÏû³ı±êÖ¾
+//åˆå§‹åŒ–ç‰¹æ®Šæ¶ˆé™¤æ ‡å¿—
 void Chr::initSpecial()
 {
 	for (int i = 0; i < 8; i++)
@@ -61,38 +64,48 @@ void Chr::initSpecial()
 		special_rl->setVisible(false);
 		special_bs->setVisible(false);
 
+		auto scale_rl = special_rl->getScale();
+		//æ ‡ç­¾åŠ¨æ€æ•ˆæœ
+		auto delay = DelayTime::create(2);
+		auto larger = ScaleTo::create(0.5, scale_rl + 0.1);
+		auto smaller = ScaleTo::create(0.5, scale_rl);
+		auto action = RepeatForever::create(Sequence::create(delay, larger, smaller, nullptr));
+
+		int x = this->getPosition().x;
+		int y = this->getPosition().y;
+
 		int delta1 = 3;
-		int delta2 = 5;
+		int delta2 = 8;
 		switch(i)
 		{
 		case 0:
-			special_rl->setPosition(CHR_WITDH / 2, CHR_WITDH - delta1);
+			special_rl->setPosition(x, y + CHR_WITDH / 2 - delta1);
 			special_rl->setRotation(90);
 			break;
 		case 1:
-			special_rl->setPosition(CHR_WITDH / 2, delta1);
+			special_rl->setPosition(x, y - CHR_WITDH / 2 + delta1);
 			special_rl->setRotation(-90);
 			break;
 		case 2:
-			special_rl->setPosition(delta1, CHR_WITDH / 2);
+			special_rl->setPosition(x - CHR_WITDH / 2 + delta1, y);
 			break;
 		case 3:
-			special_rl->setPosition(CHR_WITDH - delta1, CHR_WITDH / 2);
+			special_rl->setPosition(x + CHR_WITDH / 2 - delta1, y);
 			special_rl->setRotation(180);
 			break;
 		case 4:
-			special_bs->setPosition(CHR_WITDH - delta2, CHR_WITDH - delta2);
+			special_bs->setPosition(x + CHR_WITDH / 2 - delta2, y + CHR_WITDH / 2 - delta2);
 			special_bs->setRotation(90);
 			break;
 		case 5:
-			special_bs->setPosition(CHR_WITDH - delta2, delta2);
+			special_bs->setPosition(x + CHR_WITDH / 2 - delta2, y - CHR_WITDH / 2 + delta2);
 			special_bs->setRotation(180);
 			break;
 		case 6:
-			special_bs->setPosition(delta2, CHR_WITDH - delta2);
+			special_bs->setPosition(x - CHR_WITDH / 2 + delta2, y + CHR_WITDH / 2 - delta2);
 			break;
 		case 7:
-			special_bs->setPosition(delta2, delta2);
+			special_bs->setPosition(x - CHR_WITDH / 2 + delta2, y - CHR_WITDH / 2 + delta2);
 			special_bs->setRotation(-90);
 			break;
 		}
@@ -106,57 +119,84 @@ void Chr::initSpecial()
 			m_special[i] = special_bs;
 		}
 
+		//m_special[i]->runAction(action);
 		addChild(m_special[i]);
 	}
 }
 
-//³õÊ¼»¯¼ıÍ·±³¾°£¬²¢Ê¹ÆäÒş²Ø
+//åˆå§‹åŒ–ç®­å¤´èƒŒæ™¯ï¼Œå¹¶ä½¿å…¶éšè—
 void Chr::initArrow()
 {
 	for (int i = 0; i < 8; i++)
 	{
 		auto arrow = Sprite::create("arrow.png");
-		arrow->setScale(CHR_WITDH / (3 * arrow->getContentSize().width));
+		arrow->setScale(0.35);
+		arrow->setGlobalZOrder(100);
 		arrow->setVisible(false);
 
-		int delta = 10;
+		int x = m_bg->getPosition().x;
+		int y = m_bg->getPosition().y;
+
+		int delta = 4;
 		switch(i)
 		{
 		case 0:
-			arrow->setPosition(CHR_WITDH / 2, CHR_WITDH + delta);
+			arrow->setPosition(x, y + CHR_WITDH / 2 + delta);
 			arrow->setRotation(-90);
 			break;
 		case 1:
-			arrow->setPosition(CHR_WITDH / 2, -delta);
+			arrow->setPosition(x, y - CHR_WITDH / 2 - delta);
 			arrow->setRotation(90);
 			break;
 		case 2:
-			arrow->setPosition(-delta, CHR_WITDH / 2);
+			arrow->setPosition(x - CHR_WITDH / 2 - delta, y);
 			arrow->setRotation(180);
 			break;
 		case 3:
-			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH / 2);
+			arrow->setPosition(x + CHR_WITDH / 2 + delta, y);
 			break;
 		case 4:
-			arrow->setPosition(CHR_WITDH + delta, CHR_WITDH + delta);
+			arrow->setPosition(x + CHR_WITDH / 2 + delta, y + CHR_WITDH / 2 + delta);
 			arrow->setRotation(-45);
 			break;
 		case 5:
-			arrow->setPosition(CHR_WITDH + delta, -delta);
+			arrow->setPosition(x + CHR_WITDH / 2 + delta, y - CHR_WITDH / 2 - delta);
 			arrow->setRotation(45);
 			break;
 		case 6:
-			arrow->setPosition(-delta, CHR_WITDH + delta);
+			arrow->setPosition(x - CHR_WITDH / 2 - delta, y + CHR_WITDH / 2 + delta);
 			arrow->setRotation(-135);
 			break;
 		case 7:
-			arrow->setPosition(-delta, -delta);
+			arrow->setPosition(x - CHR_WITDH / 2 - delta, y - CHR_WITDH / 2 - delta);
 			arrow->setRotation(135);
 			break;
 		}
 		m_arrow[i] = arrow;
 		addChild(m_arrow[i]);
 	}
+}
+
+void Chr::chrAciton()
+{
+	//å¦‚æœæ­£åœ¨æ‰§è¡ŒåŠ¨ä½œï¼Œé‚£ä¹ˆä¸æ‰§è¡Œ
+	if (m_isAction)
+	{
+		return;
+	}
+
+	m_isAction = true;
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
+
+	auto scale = this->getScale();
+	auto scalebigger = ScaleTo::create(0.1, scale + 0.1);
+	auto scalenormal = ScaleTo::create(0.1, scale);
+	auto scalesmaller = ScaleTo::create(0.1, scale - 0.2);
+	auto call = CallFunc::create([this]() {
+		this->m_isAction = false;
+	});
+	auto action = Sequence::create(scalebigger, scalesmaller, scalenormal, call, nullptr);
+	this->runAction(action);
 }
 
 void Chr::hideArrow()
@@ -169,24 +209,37 @@ void Chr::hideArrow()
 
 void Chr::showArrow(Chr* next_chr)
 {
-	//ÅĞ¶ÏÄÄ¸ö¼ıÍ·ÏÔÊ¾
+	Sprite* arrow = nullptr;
+
+	//åˆ¤æ–­å“ªä¸ªç®­å¤´æ˜¾ç¤º
 	int dx = next_chr->getX() - this->getX();
 	int dy = next_chr->getY() - this->getY();
 	int d = abs(dx) + abs(dy);
+
 	if (d == 1)
 	{
-		if (dy ==  1) { (this->getArrow())[0]->setVisible(true); } //ÉÏ
-		if (dy == -1) { (this->getArrow())[1]->setVisible(true); } //ÏÂ
-		if (dx == -1) { (this->getArrow())[2]->setVisible(true); } //×ó
-		if (dx ==  1) { (this->getArrow())[3]->setVisible(true); } //ÓÒ
+		if (dy ==  1) { arrow = (this->getArrow())[0]; } //ä¸Š
+		if (dy == -1) { arrow = (this->getArrow())[1]; } //ä¸‹
+		if (dx == -1) { arrow = (this->getArrow())[2]; } //å·¦
+		if (dx ==  1) { arrow = (this->getArrow())[3]; } //å³
 	}
 	if (d == 2)
 	{
-		if (dx > 0 && dy > 0) { (this->getArrow())[4]->setVisible(true); } //ÓÒÉÏ
-		if (dx > 0 && dy < 0) { (this->getArrow())[5]->setVisible(true); } //ÓÒÏÂ
-		if (dx < 0 && dy > 0) { (this->getArrow())[6]->setVisible(true); } //×óÉÏ
-		if (dx < 0 && dy < 0) { (this->getArrow())[7]->setVisible(true); } //×óÏÂ
+		if (dx > 0 && dy > 0) { arrow = (this->getArrow())[4]; } //å³ä¸Š
+		if (dx > 0 && dy < 0) { arrow = (this->getArrow())[5]; } //å³ä¸‹
+		if (dx < 0 && dy > 0) { arrow = (this->getArrow())[6]; } //å·¦ä¸Š
+		if (dx < 0 && dy < 0) { arrow = (this->getArrow())[7]; } //å·¦ä¸‹
 	}
+
+	//ç®­å¤´çš„æ˜¾ç¤ºåŠ¨ç”»
+	auto scalebigger = ScaleTo::create(0.2, 0.4);
+	auto scalenormal = ScaleTo::create(0.2, 0.35);
+	auto call = CallFunc::create([arrow]() {
+		arrow->setScale(0.01);
+		arrow->setVisible(true);
+	});
+	auto action = Sequence::create(call, scalebigger, scalenormal, nullptr);
+	arrow->runAction(action);
 }
 
 string Chr::getNormalBG()
@@ -201,27 +254,32 @@ string Chr::getNormalBG()
 	}
 }
 
-//ºáÏû
-void Chr::bombHOR(ChrsGrid* chrsgrid)
+//æ¨ªæ¶ˆ
+void Chr::bombHOR()
 {
+	this->m_special_type = 0;
+
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
 	auto chrsbox = chrsgrid->getChrsBox();
 
 	for (int i = 0; i < chrsgrid->getCol(); i++)
 	{
-		//ºá·½ÏòÉÏÓĞ¿ÉÄÜ³öÏÖÒÑ¾­Ïû³ıÁËµÄ£¬ÔòÌø¹ı
-		if ((*chrsbox)[i][m_y] == nullptr)
+		//æ¨ªæ–¹å‘ä¸Šæœ‰å¯èƒ½å‡ºç°æ­£åœ¨æ¶ˆé™¤äº†çš„ï¼Œåˆ™è·³è¿‡
+		if ((*chrsbox)[i][m_y] ->isCrushing())
 		{
 			continue;
 		}
 
-		(*chrsbox)[i][m_y]->removeFromParent();
-		(*chrsbox)[i][m_y] = nullptr;
+		(*chrsbox)[i][m_y]->bomb();
 	}
 }
 
-//ÊúÏû
-void Chr::bombVAR(ChrsGrid* chrsgrid)
+//ç«–æ¶ˆ
+void Chr::bombVAR()
 {
+	this->m_special_type = 0;
+
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
 	auto chrsbox = chrsgrid->getChrsBox();
 
 	for (int i = 0; i < chrsgrid->getRow(); i++)
@@ -231,17 +289,19 @@ void Chr::bombVAR(ChrsGrid* chrsgrid)
 			continue;
 		}
 
-		(*chrsbox)[m_x][i]->removeFromParent();
-		(*chrsbox)[m_x][i] = nullptr;
+		(*chrsbox)[m_x][i]->bomb();
 	}
 }
 
-//ÓÒĞ±Ïû
-void Chr::bombRBS(ChrsGrid* chrsgrid)
+//å³æ–œæ¶ˆ
+void Chr::bombRBS()
 {
+	this->m_special_type = 0;
+
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
 	auto chrsbox = chrsgrid->getChrsBox();
 
-	//ÍùÏÂÏû³ı£¬ÒòiÎª0£¬°üº¬Ïû³ı×ÔÉí
+	//å¾€ä¸‹æ¶ˆé™¤ï¼Œå› iä¸º0ï¼ŒåŒ…å«æ¶ˆé™¤è‡ªèº«
 	int i = 0;
 	while (1)
 	{
@@ -258,12 +318,11 @@ void Chr::bombRBS(ChrsGrid* chrsgrid)
 			continue;
 		}
 
-		(*chrsbox)[x][y]->removeFromParent();
-		(*chrsbox)[x][y] = nullptr;
+		(*chrsbox)[x][y]->bomb();
 
 		i++;
 	}
-	//ÍùÉÏÏû³ı
+	//å¾€ä¸Šæ¶ˆé™¤
 	i = 1;
 	while (1)
 	{
@@ -280,19 +339,21 @@ void Chr::bombRBS(ChrsGrid* chrsgrid)
 			continue;
 		}
 
-		(*chrsbox)[x][y]->removeFromParent();
-		(*chrsbox)[x][y] = nullptr;
+		(*chrsbox)[x][y]->bomb();
 
 		i++;
 	}
 }
 
-//×óĞ±Ïû
-void Chr::bombLBS(ChrsGrid* chrsgrid)
+//å·¦æ–œæ¶ˆ
+void Chr::bombLBS()
 {
+	this->m_special_type = 0;
+
+	auto chrsgrid = (ChrsGrid*)(this->getParent());
 	auto chrsbox = chrsgrid->getChrsBox();
 
-	//ÍùÏÂÏû³ı£¬ÒòiÎª0£¬°üº¬Ïû³ı×ÔÉí
+	//å¾€ä¸‹æ¶ˆé™¤ï¼Œå› iä¸º0ï¼ŒåŒ…å«æ¶ˆé™¤è‡ªèº«
 	int i = 0;
 	while (1)
 	{
@@ -309,12 +370,11 @@ void Chr::bombLBS(ChrsGrid* chrsgrid)
 			continue;
 		}
 
-		(*chrsbox)[x][y]->removeFromParent();
-		(*chrsbox)[x][y] = nullptr;
+		(*chrsbox)[x][y]->bomb();
 
 		i++;
 	}
-	//ÍùÉÏÏû³ı
+	//å¾€ä¸Šæ¶ˆé™¤
 	i = 1;
 	while (1)
 	{
@@ -331,89 +391,102 @@ void Chr::bombLBS(ChrsGrid* chrsgrid)
 			continue;
 		}
 
-		(*chrsbox)[x][y]->removeFromParent();
-		(*chrsbox)[x][y] = nullptr;
+		(*chrsbox)[x][y]->bomb();
 
 		i++;
 	}
 }
 
-//¸ù¾İºº×ÖÔªËØÖ®ÀàĞÍ£¬¶ÔÆä»òÖÜ±ßÔªËØ½øĞĞÏû³ı
+//æ ¹æ®æ±‰å­—å…ƒç´ ä¹‹ç±»å‹ï¼Œå¯¹å…¶æˆ–å‘¨è¾¹å…ƒç´ è¿›è¡Œæ¶ˆé™¤
 void Chr::bomb()
 {
-	auto chrsgrid = (ChrsGrid*)(this->getParent());
-
-	//Èç¹û¸¸½ÚµãÎª¿Õ£¬ËµÃ÷¸ÃÔªËØÒÑ¾­±»Ïû³ıÁË£¬ÔòÎŞĞèÔÙÏû³ı
-	if (chrsgrid == nullptr)
+	if (this->m_isCrushing == true)
 	{
 		return;
 	}
 
-	auto chrsbox = chrsgrid->getChrsBox();
-
-	//¼òµ¥µÄµ¥Ïû
+	//ç®€å•çš„å•æ¶ˆ
 	if (m_special_type == 0)
 	{
-		(*chrsbox)[m_x][m_y] = nullptr;
-		this->removeFromParent();
+		this->m_isCrushing = true;
+		this->setAnchorPoint(Vec2(0.5, 0.5));//ä¸ºäº†èƒ½å¤Ÿä»ä¸­é—´ç¼©æ”¾
+
+		//æ¶ˆé™¤åŠ¨ä½œ
+		auto scalebigger = ScaleTo::create(0.1, 1.1);
+		auto scalesmaller = ScaleTo::create(0.2, 0.01);
+
+		//æ­¤ä¸ºæ¶ˆé™¤åæ‰§è¡Œçš„
+		auto call = CallFunc::create([this]() {
+			auto chrsgrid = (ChrsGrid*)(this->getParent());
+			auto chrsbox = chrsgrid->getChrsBox();
+			(*chrsbox)[m_x][m_y] = nullptr;
+			this->removeFromParent();
+			this->m_isCrushing = false;
+		});
+		auto action = Sequence::create(scalebigger, scalesmaller, call, nullptr);
+
+		//æ‰§è¡Œå®Œæ•´æ¶ˆé™¤åŠ¨ä½œ
+		this->runAction(action);
+
+		return;
 	}
 
-	//ºáÏû
+	//æ¨ªæ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_HOR)
 	{
-		bombHOR(chrsgrid);
+		bombHOR();
 	}
 
-	//ÊúÏû
+	//ç«–æ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_VAR)
 	{
-		bombVAR(chrsgrid);
+		bombVAR();
 	}
 
-	//ÓÒĞ±Ïû
+	//å³æ–œæ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_RBS)
 	{
-		bombRBS(chrsgrid);
+		bombRBS();
 	}
 
-	//×óĞ±Ïû
+	//å·¦æ–œæ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_LBS)
 	{
-		bombLBS(chrsgrid);
+		bombLBS();
 	}
 
-	//ºáÊúÊ®×ÖÏû
+	//æ¨ªç«–åå­—æ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_HVR)
 	{
-		bombHOR(chrsgrid);
-		bombVAR(chrsgrid);
+		bombHOR();
+		bombVAR();
 	}
 
-	//×óÓÒĞ±Ïû
+	//å·¦å³æ–œæ¶ˆ
 	if (m_special_type == SPECIAL_TYPE_RLB)
 	{
-		bombRBS(chrsgrid);
-		bombLBS(chrsgrid);
+		bombRBS();
+		bombLBS();
 	}
 
-	//È«·½Î»Ïû³ı
+	//å…¨æ–¹ä½æ¶ˆé™¤
 	if (m_special_type == SPECIAL_TYPE_ALL)
 	{
-		bombHOR(chrsgrid);
-		bombVAR(chrsgrid);
-		bombRBS(chrsgrid);
-		bombLBS(chrsgrid);
+		bombHOR();
+		bombVAR();
+		bombRBS();
+		bombLBS();
 	}
 }
 
 void Chr::setSpecial(int special_type)
 {
-	if (special_type == 0) return; //Õı³£ÀàĞÍÎŞĞèÉè¶¨
+	if (special_type == 0) return; //æ­£å¸¸ç±»å‹æ— éœ€è®¾å®š
 
 	m_special_type = special_type;
 	m_bg->setTexture("char_bg_special.png");
 
-	//Ìí¼ÓÌØĞ§±ê¼Ç
+	//æ·»åŠ ç‰¹æ•ˆæ ‡è®°
 	switch (m_special_type)
 	{
 	case SPECIAL_TYPE_HOR :

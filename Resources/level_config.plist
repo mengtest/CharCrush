@@ -10,14 +10,20 @@
 			<!-- 关卡包含的词组-->
 			<key>letter</key>
 			<array>
-				<string>匹诺曹</string>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->
 			<key>countdown</key>
 			<string>5</string>
 			<!-- 关卡限定步数-->
 			<key>step</key>
-			<string>6</string>
+			<string>20</string>
 			<!-- 关卡所需分数，1星，2星，3星-->
 			<key>score1</key>
 			<string>120</string>

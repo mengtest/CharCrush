@@ -16,7 +16,7 @@ ChrsGrid* ChrsGrid::create(ValueMap level_info, int col, int row)
 	{
 		CC_SAFE_DELETE(chrsgrid);
 		return nullptr;
-	}	
+	}
 }
 
 bool ChrsGrid::init(ValueMap level_info, int col, int row)
@@ -29,10 +29,15 @@ bool ChrsGrid::init(ValueMap level_info, int col, int row)
 	this->setContentSize(Size(col*GRID_WIDTH, row*GRID_WIDTH));
 	this->setAnchorPoint(Vec2(0.5, 0.5));
 
+	//绘制一个矩形，用以测试棋盘范围
+	auto drawnode = DrawNode::create();
+	drawnode->drawRect(Vec2(0, 0), Vec2(this->getContentSize().width, this->getContentSize().height), Color4F::RED);
+	//addChild(drawnode);
+
 	//棋盘底图
 	auto gridbg = ui::Scale9Sprite::create("grid_bg.png");
 	gridbg->setContentSize(Size(col * GRID_WIDTH + 10, row * GRID_WIDTH + 10));
-	gridbg->setPosition(this->getContentSize().width / 2 - 10, this->getContentSize().height / 2 - 10);
+	gridbg->setPosition(this->getContentSize().width / 2, this->getContentSize().height / 2);
 	addChild(gridbg, 0, 1000);
 
 	//得到单词集合
@@ -84,6 +89,7 @@ bool ChrsGrid::init(ValueMap level_info, int col, int row)
 	listener->onTouchBegan = CC_CALLBACK_2(ChrsGrid::onTouchBegan, this);
 	listener->onTouchMoved = CC_CALLBACK_2(ChrsGrid::onTouchMoved, this);
 	listener->onTouchEnded = CC_CALLBACK_2(ChrsGrid::onTouchEnded, this);
+	listener->onTouchCancelled = CC_CALLBACK_2(ChrsGrid::onTouchCancelled, this);
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
@@ -119,11 +125,14 @@ bool ChrsGrid::onTouchBegan(Touch* pTouch, Event*)
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
 
 	//是否有按在汉字上
-	if (y < m_row && x < m_col && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
+	if (y < m_row && x < m_col && Rect(chr_pos.x + 5, chr_pos.y + 5, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
-		//得到当前选中的汉字元素，鬓设置选中颜色
+		//得到当前选中的汉字元素，设置选中颜色
 		auto chr = m_ChrsBox[x][y];
 		chr->getBg()->setTexture("char_bg_selected.png");
+
+		//执行按住后动作
+		chr->chrAciton();
 
 		//加入临时选定汉字集合，然后更改游戏主界面的letter label显示
 		m_SelectedChrs.pushBack(chr);
@@ -160,8 +169,8 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 	//得到汉字原点模型坐标
 	auto chr_pos = Vec2(x * GRID_WIDTH, y * GRID_WIDTH);
 
-	//将已选的合法汉字加入临时已选汉字盒子
-	if (y < m_row && x < m_col && Rect(chr_pos.x, chr_pos.y, CHR_WITDH, CHR_WITDH).containsPoint(pos))
+	//是否按在汉字上
+	if (y < m_row && x < m_col && Rect(chr_pos.x + 5, chr_pos.y + 5, CHR_WITDH, CHR_WITDH).containsPoint(pos))
 	{
 		//得到当前触摸点的汉字元素，以及最后一次选择的汉字
 		auto chr = m_ChrsBox[x][y];
@@ -180,11 +189,21 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 				//判断哪个箭头显示
 				last_chr->showArrow(chr);
 
+				//执行按住后动作
+				chr->chrAciton();
+
 				m_SelectedChrs.pushBack(chr);
 				chr->getBg()->setTexture("char_bg_selected.png");
 
 				//得到能否消除的状态
 				m_canCrush = canCrush();
+				if (m_canCrush)
+				{
+					for (auto &chr : m_SelectedChrs)
+					{
+						chr->chrAciton();
+					}
+				}
 			}
 		}
 
@@ -196,6 +215,9 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 			auto secondlast_chr = m_SelectedChrs.at(m_SelectedChrs.size()-2);
 			if (secondlast_chr == chr)
 			{
+				//对最后一个元素执行释放后动作
+				m_SelectedChrs.back()->chrAciton();
+
 				//将最后一个元素删除出去
 				m_SelectedChrs.back()->getBg()->setTexture(m_SelectedChrs.back()->getNormalBG());
 				m_SelectedChrs.popBack();
@@ -205,8 +227,16 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 				auto arrow = chr->getArrow();
 				for (int i = 0; i < 8; i++) { if (arrow[i]->isVisible()) arrow[i]->setVisible(false); }
 
-				//得到能否消除的状态
 				m_canCrush = canCrush();
+				/*
+				if (m_canCrush)
+				{
+				for (auto &chr : m_SelectedChrs)
+				{
+				chr->chrAciton();
+				}
+				}
+				*/
 			}
 
 			//更改主界面的letter label的显示
@@ -306,7 +336,7 @@ int ChrsGrid::getSpecial(int i)
 void ChrsGrid::goCrush()
 {
 	//注意：最后一个不删除，等待特殊类型判断后处理之
-	for (int i = 0; i < m_SelectedChrs.size() - 1; i++)
+	for (int i = 0; i < m_SelectedChrs.size(); i++)
 	{
 		auto chr = m_SelectedChrs.at(i);
 
@@ -342,20 +372,50 @@ void ChrsGrid::crushLastChr()
 	//得到消除后，应该生成的特殊类型
 	int special_type = getSpecial(m_SelectedChrs.size() - 1);
 
-	//如果生成的是普通类型，那么简单消除
 	auto last_chr = m_SelectedChrs.back();
-	if (special_type == 0)
+	if (special_type != 0)
 	{
-		last_chr->bomb();
-	}
-	else //如果生成了特殊类型，那么除了消除，还要增加一个新的特殊类型汉字元素在原位置
-	{
-		last_chr->bomb();
-
 		auto new_chr = createAChr(last_chr->getX(), last_chr->getY());
 		new_chr->setSpecial(special_type);
 		m_ChrsBox[last_chr->getX()][last_chr->getY()] = new_chr;
+
+		//进入动作，完成后在添加新元素，开始掉落
+		new_chr->setScale(0.01);
+		auto scalebigger = ScaleTo::create(0.1, 1.2);
+		auto scalesmaller = ScaleTo::create(0.2, 1);
+		auto call = CallFunc::create([this]() {
+			//清空临时已选汉字集合, 更改主界面的letter label的显示
+			m_SelectedChrs.clear();	
+			getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+
+			//根据阵列空余添加新汉字元素至新汉字盒子，位于顶部，等待掉落
+			addNewChrs();
+
+			//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
+			dropChrs();
+			schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
+		});
+		auto action = Sequence::create(scalebigger, scalesmaller, call, nullptr);
+		new_chr->runAction(action);
 	}
+	else
+	{
+		//清空临时已选汉字集合, 更改主界面的letter label的显示
+		m_SelectedChrs.clear();	
+		getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+
+		//根据阵列空余添加新汉字元素至新汉字盒子，位于顶部，等待掉落
+		addNewChrs();
+
+		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
+		dropChrs();
+		schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
+	}
+}
+
+void ChrsGrid::onTouchCancelled(Touch*, Event*)
+{
+
 }
 
 void ChrsGrid::onTouchEnded(Touch*, Event*)
@@ -371,37 +431,57 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		gamescene->subStep();
 		gamescene->addScore(m_SelectedChrs.size() * SCORE_PER_CHR);
 
-		//对已选汉字盒子内的元素进行消除，但不消除最后一个
+		//对已选汉字盒子内的元素进行消除
 		goCrush();
 
-		//对已选汉字盒子内最后一个汉字做特殊处理
-		crushLastChr();
-
-		//根据阵列空余添加新汉字元素至新汉字盒子，位于顶部，等待掉落
-		addNewChrs();
-
-		//使汉字掉落，同时开启掉落状态捕捉函数，掉落完后判断步数是否结束
-		dropChrs();
-		schedule(schedule_selector(ChrsGrid::onChrsDropping), 0.1);
+		//捕捉消除动作是否完成，完成后继续下一个动作
+		schedule(schedule_selector(ChrsGrid::onChrsCrushing), 0.02);
 	}
 	else
 	{
 		//如果不能，改变回背景颜色，其箭头也隐藏
 		for (auto &chr : m_SelectedChrs)
 		{
+			//chr->setAction(false);
 			chr->getBg()->setTexture(chr->getNormalBG().c_str());
 			chr->hideArrow();
 		}
-	}
 
-	//清空临时已选汉字集合
-	m_SelectedChrs.clear();
-	//更改主界面的letter label的显示
-	getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+		//清空临时已选汉字集合
+		m_SelectedChrs.clear();
+		//更改主界面的letter label的显示
+		getGameScene()->setLetterLabel(getStringFromChrs(&m_SelectedChrs), false);
+	}
 
 	//开启倒计时捕捉，即开启提示功能
 	resetCountdown();
 	schedule(schedule_selector(ChrsGrid::onCountdownCallBack), 1);
+}
+
+//等待汉字消除完毕，再添加新汉字，然后掉落
+void ChrsGrid::onChrsCrushing(float dt)
+{
+	//log ("crushing");
+	for (int x = 0; x < m_col; x++)
+	{
+		for (int y = 0; y < m_row; y++)
+		{
+			if (m_ChrsBox[x][y] == nullptr)
+			{
+				continue;
+			}
+
+			if (m_ChrsBox[x][y]->isCrushing())
+			{
+				return;
+			}
+		}
+	}
+
+	//log ("crushing over");
+	unschedule(schedule_selector(ChrsGrid::onChrsCrushing));
+
+	crushLastChr();
 }
 
 //汉字掉落状态捕捉函数，当新汉字掉落完，并清除出新汉字盒子时，掉落完毕
@@ -460,14 +540,13 @@ void ChrsGrid::dropChrs()
 			{
 				chr->setY(chr->getY() - space);//重置其坐标y值
 
-				auto delay = DelayTime::create(0.2);//这0.2秒留给消除特效
 				auto move = MoveBy::create(0.2, Vec2(0, -space*GRID_WIDTH));
 				auto call = CallFunc::create([pChrsBox, chr](){
 					//更新汉字盒子内的数据
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
 				});
 
-				chr->runAction(Sequence::create(delay, move, call, nullptr));//准备下落的动作
+				chr->runAction(Sequence::create(move, call, nullptr));//准备下落的动作
 			}
 		}
 
@@ -484,15 +563,14 @@ void ChrsGrid::dropChrs()
 			if (chr->getX() == x)
 			{
 				chr->setY(chr->getY() - space);
-				auto delay = DelayTime::create(0.2);
-				auto move = MoveBy::create(0.4, Vec2(0, -space*GRID_WIDTH));
+				auto move = MoveBy::create(0.2, Vec2(0, -space*GRID_WIDTH));
 				auto call = CallFunc::create([chr, pChrsBox, this](){
 					(*pChrsBox)[chr->getX()][chr->getY()] = chr;
 					//从新汉字盒子中移除该汉字，也就是说，当新汉字盒子为空时，消除结束
 					m_NewChrs.eraseObject(chr);
 				});
 
-				chr->runAction(Sequence::create(delay, move, call, nullptr));
+				chr->runAction(Sequence::create(move, call, nullptr));
 			}
 		}
 	}
@@ -663,7 +741,7 @@ Chr* ChrsGrid::createAChr(int x, int y)
 	auto s = m_Chrs.at(i);
 	chr = Chr::createWithString(s, x, y);
 
-	chr->setPosition(x * GRID_WIDTH, y * GRID_WIDTH);
+	chr->setPosition(x * GRID_WIDTH + CHR_WITDH / 2 + 5, y * GRID_WIDTH + CHR_WITDH / 2 + 5);
 	addChild(chr);
 
 	//log("add a chr!---content:%s---x:%d---y:%d", chr->getString().getCString(), x, y);

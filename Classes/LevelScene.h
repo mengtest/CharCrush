@@ -9,12 +9,14 @@ USING_NS_CC;
 class LevelScene : public Layer
 {
 public:
-	CREATE_FUNC(LevelScene);
-	static Scene* createScene();
-	bool init();
+	static Scene* createScene(ValueVector levels_info);
+	static LevelScene* create(ValueVector levels_info);
+	bool init(ValueVector levels_info);
 
 private:
 	void onLevelChooseCallBack(Ref* pSender);	//选择关卡后的回调函数
+
+	void onBackCallBack(Ref* pSender);   //返回游戏主界面
 
 	void setLevelOpened(Menu *level_menu);		//设置关卡是否开放
 
