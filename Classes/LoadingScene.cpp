@@ -53,6 +53,9 @@ bool LoadingScene::init()
 	TextureCache::getInstance()->addImageAsync("LevelScene/level_opened_selected.png", addTextureCallback);
 	TextureCache::getInstance()->addImageAsync("LevelScene/level_bg.jpg", addTextureCallback);
 	TextureCache::getInstance()->addImageAsync("LevelScene/level_num.png", addTextureCallback);
+	TextureCache::getInstance()->addImageAsync("GameScene/aim_bar.jpg", addTextureCallback);
+	TextureCache::getInstance()->addImageAsync("GameScene/button_continue.png", addTextureCallback);
+	TextureCache::getInstance()->addImageAsync("GameScene/button_back.png", addTextureCallback);
 
 	//开启加载进度检测
 	schedule(schedule_selector(LoadingScene::onTextureLoading));

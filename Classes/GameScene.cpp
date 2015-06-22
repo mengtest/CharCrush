@@ -36,6 +36,13 @@ bool GameScene::init(ValueMap level_info)
 	//得到关卡序号
 	m_level_id = level_info.at("ID").asInt();
 
+	//初始化本关卡目标 
+	auto aim_info = level_info.at("aim").asValueMap();
+	m_aim = aim_info.at("ID").asInt();
+	m_score_need = aim_info.at("score").asInt();
+
+	m_step_need = level_info.at("step").asInt();
+
 	//添加游戏背景
 	auto bg = Sprite::create("bg.png");
 	bg->setPosition(winSize.width / 2, winSize.height / 2);
@@ -95,19 +102,19 @@ bool GameScene::init(ValueMap level_info)
 	score_label->setTag(103);
 	score_label->setScale(1.5);
 	score_label->setAnchorPoint(Vec2(0.5, 0.5));
-	addChild(score_label);
+	//addChild(score_label);
 
-	//临时添加，通关所需分数
-	m_score_start1 = level_info.at("score1").asInt();
-	m_score_start2 = level_info.at("score2").asInt();
-	m_score_start3 = level_info.at("score3").asInt();
-	char buf1[100] = {0};
-	sprintf(buf1, "(通关所需分数:%d)", m_score_start1);
-	auto label_score_need = Label::createWithSystemFont(buf1, "Arial", 20);
-	label_score_need->setPosition(score_label->getPosition());
-	label_score_need->setPositionX(label_score_need->getPositionX() + 150);
-	label_score_need->setColor(Color3B::BLACK);
-	addChild(label_score_need);
+	//关卡目标1代表获得指定分数
+	if (m_aim == 1)
+	{
+		char buf1[100] = {0};
+		sprintf(buf1, "(本关通关所需分数:%d)", m_score_need);
+		auto label_score_need = Label::createWithSystemFont(buf1, "Arial", 20);
+		label_score_need->setPosition(score_label->getPosition());
+		label_score_need->setPositionX(label_score_need->getPositionX() + 150);
+		label_score_need->setColor(Color3B::BLACK);
+		addChild(label_score_need);
+	}
 
 	//显示三颗星星，代表通关星级
 	auto star1 = Sprite::create("star1.png");star1->setTag(200);star1->setScale(0.5);star1->setVisible(false);
@@ -127,7 +134,46 @@ bool GameScene::init(ValueMap level_info)
 	menu->setPosition(winSize.width / 2, 165);
 	addChild(menu);
 
+	//结束提示bar
+	auto label = Label::createWithSystemFont("", "Arial", 36);
+	label->setColor(Color3B::BLACK);
+	auto label_countdown = Label::createWithSystemFont("", "Arial", 36);
+	label_countdown->setColor(Color3B::BLACK);
+	label_countdown->setVisible(false);
+	m_end_bar = Sprite::create("GameScene/aim_bar.jpg");
+	m_end_bar->setPosition(winSize.width / 2, winSize.height / 2 + 100);
+	addChild(m_end_bar);
+	m_end_bar->addChild(label, 0, 100);
+	m_end_bar->addChild(label_countdown, 0, 101);
+	label->setPosition(m_end_bar->getContentSize().width / 2, m_end_bar->getContentSize().height / 2 + 30);
+	label_countdown->setPosition(m_end_bar->getContentSize().width / 2, m_end_bar->getContentSize().height / 2 - 30);
+	m_end_bar->setOpacity(0);
+
 	return true;
+}
+
+//倒计时返回关卡选择界面
+void GameScene::goingBackToLevelScene(float dt)
+{
+	if (m_countdown != 0)
+	{
+		char buf[10] = {0};
+		sprintf(buf, "%d", m_countdown);
+		((Label*)m_end_bar->getChildByTag(101))->setString(buf);
+	}
+
+	if (m_countdown == 0)
+	{
+		unschedule(schedule_selector(GameScene::goingBackToLevelScene));
+
+		auto sharedFile = FileUtils::getInstance();
+		auto levels_info = sharedFile->getValueVectorFromFile("level_config.plist");
+		auto scene = LevelScene::createScene(levels_info);
+		auto tscene = TransitionFade::create(0.5, scene);
+		Director::getInstance()->replaceScene(tscene);
+	}
+
+	m_countdown--;
 }
 
 void GameScene::onBackCallBack(Ref* pSender)
@@ -138,8 +184,8 @@ void GameScene::onBackCallBack(Ref* pSender)
 	Director::getInstance()->replaceScene(scene);
 }
 
-//加分并显示
-void GameScene::addScore(int score)
+//加分并显示，返回当前积分
+int GameScene::addScore(int score)
 {
 	//当前关卡分数增加
 	m_score += score;
@@ -147,46 +193,90 @@ void GameScene::addScore(int score)
 	sprintf(buf, "%d", m_score);
 
 	//同步显示当前关卡分数
-	auto score_label = (LabelAtlas*)(this->getChildByTag(103));
-	score_label->setString(buf);
+	auto scoreadd_label = (LabelAtlas*)(this->getChildByTag(102));
+	//score_label->setString(buf);
+	scoreadd_label->setString(buf);
 
-	//根据获得的分数使星星显现
-	if (m_score >= m_score_start1) ((Sprite*)this->getChildByTag(200))->setVisible(true);
-	if (m_score >= m_score_start2) ((Sprite*)this->getChildByTag(201))->setVisible(true);
-	if (m_score >= m_score_start3) ((Sprite*)this->getChildByTag(202))->setVisible(true);
+	return m_score;
+
+	//根据游戏得分进度使星级显现
+	/*
+	if (m_aim == 1)
+	{
+	int star1 = m_score_need / 3;
+	int star2 = 2 * m_score_need / 3;
+	int star3 = m_score_need;
+	//1星级
+	if (m_score >= star1 && m_score < star2)
+	{
+	((Sprite*)this->getChildByTag(200))->setVisible(true);
+	}
+
+	//2星级
+	if (m_score >= star2 && m_score < star3)
+	{
+	((Sprite*)this->getChildByTag(201))->setVisible(true);
+	}
+
+	//3星级
+	if (m_score >= star3)
+	{
+	((Sprite*)this->getChildByTag(202))->setVisible(true);
+	}
+	}
+	*/
 }
 
-void GameScene::gameover()
+void GameScene::gameover(bool isWin)
 {
 	//游戏将终结
 	log ("game over...");
 
-	//暂停grid的schedule、触摸
-	m_chrsgrid->unscheduleAllSelectors();
-	_eventDispatcher->pauseEventListenersForTarget(m_chrsgrid);
+	//通关label提示
+	auto fadein = FadeIn::create(1);
+	auto call = CallFunc::create([this]() {
+		((Label*)m_end_bar->getChildByTag(101))->setVisible(true);
+		m_countdown = 3;
+		goingBackToLevelScene(0);
+		schedule(schedule_selector(GameScene::goingBackToLevelScene), 1);
+	});
+	auto end_action = Sequence::create(fadein->clone(), call, nullptr);
 
-	//判断是否通关...
-	if (m_score >= m_score_start1)
+	if (isWin)
 	{
 		log ("已通关");
-		//得到当前最高关卡
-		auto heighest_level = UserDefault::getInstance()->getIntegerForKey("HeighestLevel");
 
-		//该关卡是否为最高关卡，是则最高关卡+1
-		if (m_level_id == heighest_level)
+		if (m_aim == 1)
 		{
-			heighest_level++;
-			UserDefault::getInstance()->setIntegerForKey("HeighestLevel", heighest_level);
+			//关卡解锁
+			//得到当前最高关卡
+			auto heighest_level = UserDefault::getInstance()->getIntegerForKey("HeighestLevel");
+
+			//该关卡是否为最高关卡，是则最高关卡+1
+			if (m_level_id == heighest_level)
+			{
+				heighest_level++;
+				UserDefault::getInstance()->setIntegerForKey("HeighestLevel", heighest_level);
+			}
+
+			((Label*)m_end_bar->getChildByTag(100))->setString("you win this level");
+			((Label*)m_end_bar->getChildByTag(100))->setOpacity(0);
+			((Label*)m_end_bar->getChildByTag(100))->runAction(fadein);
+			m_end_bar->runAction(end_action);
 		}
 	}
-
-	//通关提示...
-
-	//返回关卡选择界面...
+	else
+	{
+		log ("未通关");
+		((Label*)m_end_bar->getChildByTag(100))->setString("you lose this level");
+		((Label*)m_end_bar->getChildByTag(100))->setOpacity(0);
+		((Label*)m_end_bar->getChildByTag(100))->runAction(fadein);
+		m_end_bar->runAction(end_action);
+	}
 }
 
-//减去一步，并显示
-void GameScene::subStep()
+//减去一步，返回当前步数
+int GameScene::subStep()
 {
 	//当前步数减一
 	m_step--;
@@ -196,6 +286,8 @@ void GameScene::subStep()
 	//同步显示当前步数限制
 	auto step_label = (LabelAtlas*)(this->getChildByTag(100));
 	step_label->setString(buf);
+
+	return m_step;
 }
 
 //更改letter Label的内容，包括加分选项，第二个参数表示是否能消除，即是否能加分
@@ -203,7 +295,7 @@ void GameScene::setLetterLabel(string letter, bool isCorrect)
 {
 	//不显示超过7个的字符。也就是说，词的长度不要超过7
 	int letter_len = letter.size() / 3;
-	if (letter_len > 7) return;
+	if (letter_len > 6) return;
 
 	//如果词条正确，显示加多少分
 	auto scoreadd_label = (LabelAtlas*)(this->getChildByTag(102));
@@ -215,7 +307,9 @@ void GameScene::setLetterLabel(string letter, bool isCorrect)
 	}
 	else
 	{
-		scoreadd_label->setString("0");
+		char buf[10] = {0};
+		sprintf(buf, "%d", m_score);
+		scoreadd_label->setString(buf);
 	}
 
 	//同步显示当前已选单词

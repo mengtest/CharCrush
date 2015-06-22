@@ -122,7 +122,7 @@ void LevelScene::setLevelOpened(Menu *level_menu)
 //关卡选择后，回调函数，将根据选择的关卡进入到游戏界面
 void LevelScene::onLevelChooseCallBack(Ref* level_item)
 {
-	//根据level_item的标签定位对应关卡的信息
+	//根据level_item的标签定位对应关卡的信息 
 	int level = ((MenuItemFont*)level_item)->getTag() - 100; //得到第几关
 	auto level_info = m_levels_info.at(level).asValueMap();  //得到该关的关卡信息，此信息是字典型的
 

@@ -5,7 +5,7 @@
 
 USING_NS_CC;
 
-#define TOTAL_PIC 23
+#define TOTAL_PIC 26
 
 class LoadingScene : public Layer
 {

@@ -189,11 +189,11 @@ void ChrsGrid::onTouchMoved(Touch* pTouch, Event*)
 				//判断哪个箭头显示
 				last_chr->showArrow(chr);
 
-				//执行按住后动作
-				chr->chrAciton();
-
 				m_SelectedChrs.pushBack(chr);
 				chr->getBg()->setTexture("char_bg_selected.png");
+
+				//执行按住后动作
+				chr->chrAciton();
 
 				//得到能否消除的状态
 				m_canCrush = canCrush();
@@ -336,6 +336,7 @@ int ChrsGrid::getSpecial(int i)
 void ChrsGrid::goCrush()
 {
 	//注意：最后一个不删除，等待特殊类型判断后处理之
+	m_bonus = 0;
 	for (int i = 0; i < m_SelectedChrs.size(); i++)
 	{
 		auto chr = m_SelectedChrs.at(i);
@@ -426,11 +427,6 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		//首先暂停触摸
 		_eventDispatcher->pauseEventListenersForTarget(this);
 
-		//游戏步数减去1，并加分
-		auto gamescene = getGameScene();
-		gamescene->subStep();
-		gamescene->addScore(m_SelectedChrs.size() * SCORE_PER_CHR);
-
 		//对已选汉字盒子内的元素进行消除
 		goCrush();
 
@@ -442,7 +438,6 @@ void ChrsGrid::onTouchEnded(Touch*, Event*)
 		//如果不能，改变回背景颜色，其箭头也隐藏
 		for (auto &chr : m_SelectedChrs)
 		{
-			//chr->setAction(false);
 			chr->getBg()->setTexture(chr->getNormalBG().c_str());
 			chr->hideArrow();
 		}
@@ -508,14 +503,40 @@ void ChrsGrid::onChrsDropping(float dt)
 			}
 		}
 
-		//如果游戏步数终止，那么游戏将结束
-		if (getGameScene()->getStep() == 0)
+		//游戏步数减去1，并加分
+		auto gamescene = getGameScene();
+		int cur_step = gamescene->subStep();
+		int cur_score = gamescene->addScore(m_bonus);
+		m_bonus = 0;
+
+		int step_need = gamescene->getStepNeed();
+		int score_need = gamescene->getScoreNeed();
+
+		//判断游戏是否结束
+		if (cur_step == 0)
 		{
-			getGameScene()->gameover();
+			if (cur_score < score_need)
+			{
+				gamescene->gameover(false);
+			}
+			else
+			{
+				gamescene->gameover(true);
+			}
+			this->unscheduleAllSelectors();
 		}
 		else
 		{
-			_eventDispatcher->resumeEventListenersForTarget(this);
+			if (cur_score >= score_need)
+			{
+				gamescene->gameover(true);
+				this->unscheduleAllSelectors();
+			}
+			else
+			{
+				//游戏没有结束，恢复触摸
+				_eventDispatcher->resumeEventListenersForTarget(this);
+			}
 		}
 	}
 }

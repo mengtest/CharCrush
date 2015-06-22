@@ -17,20 +17,23 @@
 				<string>魔兽</string>
 				<string>世界</string>
 				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->
 			<key>countdown</key>
 			<string>5</string>
 			<!-- 关卡限定步数-->
 			<key>step</key>
-			<string>20</string>
-			<!-- 关卡所需分数，1星，2星，3星-->
-			<key>score1</key>
-			<string>120</string>
-			<key>score2</key>
-			<string>300</string>
-			<key>score3</key>
-			<string>600</string>
+			<string>7</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>400</string>
+			</dict>
 		</dict>
 		
 		<!-- 第二个关卡信息-->
@@ -38,23 +41,33 @@
 			<!-- 关卡ID-->
 			<key>ID</key>
 			<string>1</string>
+			<!-- 关卡包含的词组-->
 			<key>letter</key>
 			<array>
-				<string>守株待兔</string>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->
 			<key>countdown</key>
 			<string>5</string>
 			<!-- 关卡限定步数-->
 			<key>step</key>
-			<string>5</string>
-			<!-- 关卡所需分数，1星，2星，3星-->
-			<key>score1</key>
-			<string>100</string>
-			<key>score2</key>
-			<string>200</string>
-			<key>score3</key>
-			<string>350</string>
+			<string>6</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>350</string>
+			</dict>
 		</dict>
 		
 		<!-- 第三个关卡信息-->
@@ -62,23 +75,169 @@
 			<!-- 关卡ID-->
 			<key>ID</key>
 			<string>2</string>
+			<!-- 关卡包含的词组-->
 			<key>letter</key>
 			<array>
-				<string>锄禾日当午</string>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
 			</array>
 			<!-- 关卡提示倒计时，0代表无提示-->
 			<key>countdown</key>
-			<string>8</string>
+			<string>5</string>
 			<!-- 关卡限定步数-->
 			<key>step</key>
 			<string>5</string>
-			<!-- 关卡所需分数，1星，2星，3星-->
-			<key>score1</key>
-			<string>250</string>
-			<key>score2</key>
-			<string>500</string>
-			<key>score3</key>
-			<string>750</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>300</string>
+			</dict>
+		</dict>
+		
+		<!-- 第四个关卡信息-->
+		<dict>
+			<!-- 关卡ID-->
+			<key>ID</key>
+			<string>3</string>
+			<!-- 关卡包含的词组-->
+			<key>letter</key>
+			<array>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
+			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>5</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>4</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>250</string>
+			</dict>
+		</dict>
+		
+		<!-- 第五个关卡信息-->
+		<dict>
+			<!-- 关卡ID-->
+			<key>ID</key>
+			<string>4</string>
+			<!-- 关卡包含的词组-->
+			<key>letter</key>
+			<array>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
+			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>5</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>3</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>200</string>
+			</dict>
+		</dict>
+		
+		<!-- 第六个关卡信息-->
+		<dict>
+			<!-- 关卡ID-->
+			<key>ID</key>
+			<string>5</string>
+			<!-- 关卡包含的词组-->
+			<key>letter</key>
+			<array>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
+			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>5</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>2</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>150</string>
+			</dict>
+		</dict>
+		
+		<!-- 第七个关卡信息-->
+		<dict>
+			<!-- 关卡ID-->
+			<key>ID</key>
+			<string>6</string>
+			<!-- 关卡包含的词组-->
+			<key>letter</key>
+			<array>
+				<string>美国末日</string>
+				<string>美国</string>
+				<string>末日</string>
+				<string>魔兽世界</string>
+				<string>魔兽</string>
+				<string>世界</string>
+				<string>世界末日</string>
+				<string>国界</string>
+				<string>末世</string>
+			</array>
+			<!-- 关卡提示倒计时，0代表无提示-->
+			<key>countdown</key>
+			<string>5</string>
+			<!-- 关卡限定步数-->
+			<key>step</key>
+			<string>1</string>
+			<!-- 关卡目标，ID为1是达到指定分数，2是找到一定数目不同词组-->
+			<key>aim</key>
+			<dict>
+				<key>ID</key>
+				<string>1</string>
+				<key>score</key>
+				<string>100</string>
+			</dict>
 		</dict>
 	</array>
 </plist>

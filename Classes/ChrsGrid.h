@@ -67,12 +67,16 @@ private:
 
 public:
 	vector<vector<Chr*>>* getChrsBox() { return &m_ChrsBox; } //得到汉字阵列
+	Vector<Chr*>* getSeletedBox() { return &m_SelectedChrs; }	  //得到已选汉字盒子
 	int getCol() { return m_col; }
 	int getRow() { return m_row; }
+	void addBonus(int bonus) { m_bonus += bonus; } 
 
 private:
 	int m_row;//行
 	int m_col;//列
+
+	int m_bonus; //一次消除将获得的积分
 
 	bool m_canCrush;//标记当前已选汉字能否消除
 	int m_countdown;//提示倒计时，倒计时结束（0），则系统根据提示盒子进行一次提示

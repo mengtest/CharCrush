@@ -1,5 +1,6 @@
 #include "Chr.h"
 #include "ChrsGrid.h"
+#include "GameScene.h"
 
 Chr* Chr::createWithString(String* str, int x, int y)
 {
@@ -231,14 +232,25 @@ void Chr::showArrow(Chr* next_chr)
 		if (dx < 0 && dy < 0) { arrow = (this->getArrow())[7]; } //左下
 	}
 
-	//箭头的显示动画
-	auto scalebigger = ScaleTo::create(0.2, 0.4);
+	//箭头的显示动画，这里存在bug，并未解决。
+	auto scalebigger = ScaleTo::create(0.2, 0.5);
 	auto scalenormal = ScaleTo::create(0.2, 0.35);
 	auto call = CallFunc::create([arrow]() {
 		arrow->setScale(0.01);
 		arrow->setVisible(true);
 	});
-	auto action = Sequence::create(call, scalebigger, scalenormal, nullptr);
+	//检查此时已选汉字盒子是否为空，如果是，让此箭头隐藏。这是因为
+	//如果释放操作太快，可能箭头没有隐藏，必须自行隐藏
+	auto call2 = CallFunc::create([this, arrow]() {
+		auto seletedBox = ((ChrsGrid*)this->getParent())->getSeletedBox();
+		if (seletedBox->empty())
+		{
+			arrow->setVisible(false);
+		}
+	});
+
+	auto action = Sequence::create(call, scalebigger, scalenormal, call2, nullptr);
+	
 	arrow->runAction(action);
 }
 
@@ -408,6 +420,9 @@ void Chr::bomb()
 	//简单的单消
 	if (m_special_type == 0)
 	{
+		//加分
+		((ChrsGrid*)this->getParent())->addBonus(SCORE_PER_CHR);
+
 		this->m_isCrushing = true;
 		this->setAnchorPoint(Vec2(0.5, 0.5));//为了能够从中间缩放
 
